@@ -1,0 +1,18 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Install compilation toolchains for native python bindings
+RUN apt-get update && apt-get install -y build-essential && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+# Structural environment flags to ensure safe application context execution paths
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+EXPOSE 8765
+
+CMD ["python3", "ai_orchestrator/agents/streaming_server.py"]

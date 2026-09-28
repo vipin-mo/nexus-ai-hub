@@ -1,0 +1,86 @@
+services:
+  # 1. Relational Database Layer (Operational Metadata & Gateway State)
+  postgres:
+    image: postgres:15-alpine
+    container_name: nexus_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nexus_admin
+      POSTGRES_PASSWORD: nexus_secure_password
+      POSTGRES_DB: nexus_operational
+    ports:
+      - "5432:5432"
+    volumes:
+      - ../data_pipeline/storage/postgres_data:/var/lib/postgresql/data
+
+  # 2. NoSQL Layer (Polymorphic Agent Memory & Long-Term Context Traces)
+  mongodb:
+    image: mongo:6.0
+    container_name: nexus_mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: nexus_admin
+      MONGO_INITDB_ROOT_PASSWORD: nexus_secure_password
+    ports:
+      - "27017:27017"
+    volumes:
+      - ../data_pipeline/storage/mongo_data:/data/db
+
+  # 3. MLOps Layer (Model Parameter Tracking & Prompt Versioning Registry)
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.10.2
+    container_name: nexus_mlflow
+    restart: unless-stopped
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./mlflow/mlruns:/mlruns
+    command: mlflow server --backend-store-uri sqlite:///mlruns/mlflow.db --default-artifact-root /mlruns --host 0.0.0.0 --port 5000
+
+  # 4. Python LangGraph AI Orchestration Engine (WebSocket Server)
+  python-orchestrator:
+    build:
+      context: ..
+      dockerfile: Dockerfile.python
+    container_name: nexus_python_orchestrator
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    environment:
+      - MONGO_URI=mongodb://nexus_admin:nexus_secure_password@mongodb:27017/nexus_ai_ops?authSource=admin
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # Ensures clean local system bridge loopbacks on Linux/Docker clusters
+    depends_on:
+      - mongodb
+      - mlflow
+
+  # 5. Java Enterprise Gateway Routing Layer
+  gateway-service:
+    build: ../core_engines/gateway-service-java
+    container_name: nexus_java_gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/nexus_operational"
+      SPRING_DATASOURCE_USERNAME: "nexus_admin"
+      SPRING_DATASOURCE_PASSWORD: "nexus_secure_password"
+      ORCHESTRATOR_HOST: "python-orchestrator"
+      OLLAMA_BASE_URL: "http://host.docker.internal:11434"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - postgres
+      - python-orchestrator
+
+  # 6. Compiled High-Performance Audio Processing Engine
+  audio-processor:
+    build: ../core_engines/audio-processor-cpp
+    container_name: nexus_cpp_processor
+    restart: unless-stopped
+    environment:
+      - GATEWAY_URL=http://gateway-service:8080/api/v1/gateway/dispatch
+    depends_on:
+      - gateway-service

@@ -1,0 +1,13 @@
+system:
+  environment: local_development
+  debug_mode: true
+
+databases:
+  postgres_host: "localhost"
+  postgres_port: 5432
+  mongo_host: "localhost"
+  mongo_port: 27017
+
+llm:
+  local_fallback_model: "qwen2.5:1.5b"
+  cloud_brain_model: "claude-haiku-4-5-20251001"

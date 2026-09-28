@@ -1,0 +1,28 @@
+# Local credentials & system keys
+.env
+config/api_keys.json
+.DS_Store
+
+# Local environments & IDE layouts
+.venv/
+.vscode/
+
+# Build outputs and compilation fragments
+target/
+build/
+core_engines/audio-processor-cpp/build/
+__pycache__/
+*.pyc
+*.class
+*.o
+.pytest_cache/
+
+# Databases, Storage Volumes & Local MLflow Runs
+.chroma/
+local_infra/mlflow/mlruns/*
+!local_infra/mlflow/mlruns/.gitkeep
+ui_analytics/analytics_warehouse.db
+
+# Ingestion logs rule: Ignore runtime artifacts but KEEP test seed logs
+data_pipeline/storage/*
+!data_pipeline/storage/raw_application_log.log

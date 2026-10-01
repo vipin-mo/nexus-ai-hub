@@ -19,20 +19,34 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @RequestMapping("/api/v1/gateway")
 public class GatewayController {
 
-    // Extracted dynamic variable string to ensure clean container mesh discovery bindings
     @Value("${nexus.orchestrator.ws-uri:ws://localhost:8765}")
     private String pythonWsUri;
+
+    private final StandardWebSocketClient webSocketClient = new StandardWebSocketClient();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @PostMapping("/dispatch")
     public DeferredResult<Map<String, Object>> dispatchToAgentEngine(@RequestBody Map<String, Object> payload) {
         DeferredResult<Map<String, Object>> deferredResult = new DeferredResult<>(30000L);
-        ObjectMapper objectMapper = new ObjectMapper();
 
-        // 1. Normalize query parameters and capture input values safely
-        String queryValue = (String) payload.getOrDefault("query", payload.getOrDefault("input_query", "Ping audit payload."));
+        deferredResult.onTimeout(() -> {
+            Map<String, Object> timeoutResponse = new HashMap<>();
+            timeoutResponse.put("status", "GATEWAY_TIMEOUT");
+            timeoutResponse.put("message", "Orchestration engine did not respond within 30 seconds.");
+            deferredResult.setResult(timeoutResponse);
+        });
+
+        String queryValue;
         String sessionId = (String) payload.getOrDefault("session_id", "docker_network_session_001");
 
-        // 2. Build a clean payload structural dictionary matching Python's expected AgentState schema
+        if (payload.containsKey("frame_id") && payload.containsKey("amplitude_db")) {
+            Object frameId = payload.get("frame_id");
+            Object amplitude = payload.get("amplitude_db");
+            queryValue = "Audio telemetry trigger event. Frame ID: " + frameId + " with Energy: " + amplitude + " dB.";
+        } else {
+            queryValue = (String) payload.getOrDefault("query", payload.getOrDefault("input_query", "Ping audit payload."));
+        }
+
         Map<String, Object> cleanPayload = new HashMap<>();
         cleanPayload.put("session_id", sessionId);
         cleanPayload.put("input_query", queryValue);
@@ -40,25 +54,18 @@ public class GatewayController {
         cleanPayload.put("security_passed", true);
         cleanPayload.put("tokens_used", 0);
 
-        System.out.println("☕ [Java Gateway Broker] Passing payload down network socket for session: " + sessionId);
-
         try {
-            StandardWebSocketClient client = new StandardWebSocketClient();
             URI targetUri = URI.create(pythonWsUri.trim());
 
-            System.out.println("🔌 [Java Gateway] Attempting WebSocket handshake with network target: " + targetUri);
-
-            client.execute(new TextWebSocketHandler() {
+            webSocketClient.execute(new TextWebSocketHandler() {
                 @Override
                 public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-                    System.out.println("✅ [Java Gateway] WebSocket network channel handshakes completed successfully!");
                     String jsonPayload = objectMapper.writeValueAsString(cleanPayload);
                     session.sendMessage(new TextMessage(jsonPayload));
                 }
 
                 @Override
-                protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-                    System.out.println("📥 [Java Gateway] Extracted async response frame from orchestration hub platform.");
+                protected void handleTextMessage(WebSocketSession session, TextMessage message) {
                     try {
                         Map<String, Object> parsedMap = objectMapper.readValue(
                             message.getPayload(),
@@ -70,22 +77,33 @@ public class GatewayController {
                         responseMap.put("status", "ERROR_PARSING_STREAM");
                         responseMap.put("raw_output", message.getPayload());
                         deferredResult.setResult(responseMap);
+                    } finally {
+                        try { session.close(CloseStatus.NORMAL); } catch (Exception ignored) {}
                     }
-                    session.close(CloseStatus.NORMAL);
                 }
 
                 @Override
-                public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
-                    System.err.println("❌ [Java Gateway] Transport boundary fault caught: " + exception.getMessage());
-                    Map<String, Object> responseMap = new HashMap<>();
-                    responseMap.put("status", "CONNECTION_FAILURE");
-                    responseMap.put("details", exception.getMessage());
-                    deferredResult.setResult(responseMap);
+                public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+                    if (!deferredResult.isSetOrExpired()) {
+                        Map<String, Object> responseMap = new HashMap<>();
+                        responseMap.put("status", "CONNECTION_DROPPED");
+                        responseMap.put("details", "WebSocket channel closed before agent execution completed.");
+                        deferredResult.setResult(responseMap);
+                    }
+                }
+
+                @Override
+                public void handleTransportError(WebSocketSession session, Throwable exception) {
+                    if (!deferredResult.isSetOrExpired()) {
+                        Map<String, Object> responseMap = new HashMap<>();
+                        responseMap.put("status", "CONNECTION_FAILURE");
+                        responseMap.put("details", exception.getMessage());
+                        deferredResult.setResult(responseMap);
+                    }
                 }
             }, new WebSocketHttpHeaders(), targetUri);
 
         } catch (Exception e) {
-            System.err.println("❌ [Java Gateway] Intermittent network processing exception discovered: " + e.getMessage());
             Map<String, Object> responseMap = new HashMap<>();
             responseMap.put("status", "HANDSHAKE_ERROR");
             responseMap.put("details", e.getMessage());

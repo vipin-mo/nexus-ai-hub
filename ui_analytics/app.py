@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -64,8 +65,11 @@ with col_ui:
 
     if st.button("⚡ Execute Workflow Pipeline"):
         with st.spinner("Orchestrating agents and retrieving local context patterns..."):
+            start_time = time.time()
+
             # Trigger our LangGraph state machine running MLflow traces under the hood
             result = run_monitored_agent(user_query)
+            elapsed_ms = (time.time() - start_time) * 1000.0
 
             dest_node = result.get("routing_destination", "COMPLEX_REASONING")
             tokens = result.get("tokens_used", 0)
@@ -75,14 +79,14 @@ with col_ui:
                 con.execute("""
                     INSERT INTO system_logs (query, routing_path, tokens_used, latency_ms)
                     VALUES (?, ?, ?, ?)
-                """, (user_query, dest_node, int(tokens), 245.50))
+                """, (user_query, dest_node, int(tokens), elapsed_ms))
 
             # Display localized outputs
             st.success("Analysis Complete!")
             st.markdown(f"**Security Check Status:** {'Passed' if result.get('security_passed', True) else 'Triggered Shield'}")
             st.markdown(f"**Identified Routing Node Path:** `{dest_node}`")
 
-            st.subheader("Cloud Core Brain Resolution (Claude 4.5 Haiku):")
+            st.subheader("Cloud Core Brain Resolution:")
             st.info(result.get("final_response", "No agent resolution returned."))
 
 # ==========================================
@@ -91,8 +95,8 @@ with col_ui:
 with col_analytics:
     st.subheader("Real-Time Platform Analytics (Local DuckDB BI Layer)")
 
-    # Execute dynamic queries using self-closing file locks to protect pipeline updates
-    with duckdb.connect(DB_FILE) as con:
+    # Open read-only connection to allow concurrent writes from PySpark ETL
+    with duckdb.connect(DB_FILE, read_only=True) as con:
         df_logs = con.execute("SELECT * FROM system_logs ORDER BY timestamp DESC").df()
         try:
             df_spark = con.execute("SELECT * FROM platform_summary_metrics ORDER BY run_timestamp DESC LIMIT 1").df()
@@ -120,9 +124,9 @@ with col_analytics:
         # Interactive Graph 1: Token expenditures over time
         st.write("**Token Consumption Trends Over Operations**")
         fig_tokens = px.line(df_logs, x='timestamp', y='tokens_used', title="API Call Cost Tracing (Anthropic Budget Monitoring)")
-        st.plotly_chart(fig_tokens, width='stretch')
+        st.plotly_chart(fig_tokens, use_container_width=True)
 
         # Interactive Graph 2: Intent path distribution breakdown
         st.write("🗺️ **Multi-Agent Intent Class Distribution**")
         fig_pie = px.pie(df_logs, names='routing_path', title="Orchestrator Routing Decision Breakdown", hole=0.3)
-        st.plotly_chart(fig_pie, width='stretch')
+        st.plotly_chart(fig_pie, use_container_width=True)

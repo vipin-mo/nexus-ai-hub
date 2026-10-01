@@ -3,9 +3,9 @@ system:
   debug_mode: true
 
 databases:
-  postgres_host: "localhost"
+  postgres_host: "postgres"
   postgres_port: 5432
-  mongo_host: "localhost"
+  mongo_host: "mongodb"
   mongo_port: 27017
 
 llm:

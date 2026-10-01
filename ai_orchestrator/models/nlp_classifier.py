@@ -1,13 +1,25 @@
 import torch
+import os
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 class LocalNLPClassifier:
     def __init__(self):
-        # Using a tiny, local optimized distilled BERT model structure
-        self.model_name = "distilbert-base-uncased"
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+        # Pre-trained sequence classification model with fine-tuned sentiment weights
+        self.model_name = "distilbert-base-uncased-finetuned-sst-2-english"
 
-        # Configure target computation allocation device parameters
+        # Dynamically allocate weights cache directory depending on host OS target environment
+        if os.path.exists("/app"):
+            cache_dir = "/app/models/hf_cache"
+        else:
+            # Fallback pathing structure targets native user space on local macOS environments smoothly
+            cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "huggingface", "hub")
+
+        os.makedirs(cache_dir, exist_ok=True)
+
+        # Enforce local weight loading fallback contexts securely
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, cache_dir=cache_dir)
+        self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name, cache_dir=cache_dir)
+
         if torch.backends.mps.is_available():
             self.device = torch.device("mps")
         elif torch.cuda.is_available():
@@ -15,15 +27,29 @@ class LocalNLPClassifier:
         else:
             self.device = torch.device("cpu")
 
-    def analyze_sentiment_tone(self, text: str) -> dict:
-        """Executes high-speed token length matrix pass over incoming raw application text blocks."""
-        inputs = self.tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
-        token_length = inputs['input_ids'].shape[1]
+        self.model.to(self.device)
+        self.model.eval()
 
-        # Return semantic inference logs
+    def analyze_sentiment_tone(self, text: str) -> dict:
+        """Executes high-speed token matrix classification over incoming text blocks."""
+        with torch.no_grad():
+            inputs = self.tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
+            token_length = inputs['input_ids'].shape[1]
+
+            outputs = self.model(**inputs)
+            probabilities = torch.softmax(outputs.logits, dim=-1)
+            prediction = torch.argmax(probabilities, dim=-1).item()
+
+            # Map SST-2 labels (0: NEGATIVE, 1: POSITIVE)
+            sentiment_label = "POSITIVE" if prediction == 1 else "NEGATIVE"
+            confidence = probabilities[0][prediction].item()
+
         return {
             "token_length": token_length,
-            "estimated_sentiment": "NEUTRAL",
+            "raw_class_prediction": prediction,
+            "estimated_sentiment": sentiment_label,
+            "confidence_score": round(confidence, 4),
             "device_allocated": str(self.device).upper()
         }
 

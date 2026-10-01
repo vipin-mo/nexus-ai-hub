@@ -10,8 +10,14 @@ set(SOURCES
     src/main.cpp
 )
 
+# Detect and mount structural external dependencies
+find_package(CURL REQUIRED)
+
 # Core binary target definition
 add_executable(audio_processor ${SOURCES})
 
 # Include directory setups mapping to source files location context safely
-target_include_directories(audio_processor PRIVATE src)
+target_include_directories(audio_processor PRIVATE src ${CURL_INCLUDE_DIRS})
+
+# Map linked dependencies securely into the binary target context
+target_link_libraries(audio_processor PRIVATE ${CURL_LIBRARIES})

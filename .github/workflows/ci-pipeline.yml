@@ -70,12 +70,15 @@ jobs:
           python -m py_compile ai_orchestrator/models/recsys_engine.py
 
       - name: Run Comprehensive System Testing Matrix
+        env:
+          OLLAMA_BASE_URL: "mock://localhost"
         run: |
           python -m unittest tests/unit/test_nexus_system_wide.py
 
       - name: Run Prompt Regression Guardrails Matrix
         env:
-          MLFLOW_TRACKING_URI: "file:./mlruns" # Forces isolated headless mock mode inside runner container environments
+          MLFLOW_TRACKING_URI: "file:./mlruns"
+          OLLAMA_BASE_URL: "mock://localhost"
         run: |
           python tests/unit/ai_eval_suite.py
 
@@ -108,3 +111,11 @@ jobs:
           context: ./core_engines/gateway-service-java
           push: false
           tags: nexus-java-gateway:latest
+
+      - name: Validate Python Orchestrator Docker Assembly
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.python
+          push: false
+          tags: nexus-python-orchestrator:latest

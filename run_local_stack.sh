@@ -39,7 +39,7 @@ st_title
 # STEP 1: Verification of Prerequisite Host Environments
 # ------------------------------------------------------------------------------
 log_info "Verifying required environment runtimes and local installations..."
-for cmd in docker cmake perl python3 java; do
+for cmd in docker cmake perl python3 java ollama; do
     if ! command -v "$cmd" &> /dev/null; then
         log_error "Missing required environment utility target command: $cmd"
         exit 1
@@ -53,6 +53,27 @@ if [ ! -f ".env" ]; then
     exit 1
 fi
 source .env
+
+# Verify Ollama service is active on the host machine
+log_info "Checking local Ollama inference server availability..."
+if ! curl -s http://localhost:11434/api/tags > /dev/null; then
+    log_error "Ollama is not running on your host machine."
+    log_warn "Please start the Ollama application on your Mac/host and try again."
+    exit 1
+else
+    log_success "Ollama daemon is active on the host machine."
+fi
+
+# Verify specific local model availability
+REQUIRED_MODEL="llama3.2:1b"
+if ! curl -s http://localhost:11434/api/tags | grep -q "$REQUIRED_MODEL"; then
+    log_warn "Required model '$REQUIRED_MODEL' not found in local Ollama storage."
+    log_info "Pulling '$REQUIRED_MODEL' now..."
+    ollama pull "$REQUIRED_MODEL"
+    log_success "Successfully pulled '$REQUIRED_MODEL'."
+else
+    log_success "Found verified Ollama model: $REQUIRED_MODEL"
+fi
 
 # ------------------------------------------------------------------------------
 # STEP 2: Compile High-Performance Native Components
@@ -88,7 +109,7 @@ log_info "Provisioning background databases and MLOps storage container mesh..."
 (
     cd local_infra
     docker compose down -v 2>/dev/null || true
-    docker compose up -d --wait postgres mongodb mlflow
+    docker compose up -d --build --wait postgres mongodb mlflow
 )
 log_success "PostgreSQL, MongoDB, and MLflow tracking servers successfully online."
 
@@ -131,19 +152,30 @@ log_success "Analytical DuckDB database tables seeded and ready."
 # ------------------------------------------------------------------------------
 log_info "Launching service daemons and background networking loops..."
 
-# Boot Python LangGraph Orchestrator WebSocket Network Channel Server
+# 1. Boot Python LangGraph Orchestrator (Override DB URIs to localhost)
 log_info "Starting Python LangGraph AI WebSocket server daemon on port 8765..."
+export MONGO_URI="mongodb://nexus_admin:nexus_secure_password@localhost:27017/nexus_ai_ops?authSource=admin"
+export MLFLOW_TRACKING_URI="http://localhost:5001"
 python3 ai_orchestrator/agents/streaming_server.py > /dev/null 2>&1 &
 sleep 2 # Let the loop attach cleanly to host network addresses
 
-# Launch Java Gateway Endpoint Router Core API System
+# 2. Launch Java Gateway Endpoint (Override DNS aliases to localhost)
 log_info "Booting Enterprise Java Spring Boot Broker Routing Server on port 8080..."
+export DB_HOST="localhost"
+export ORCHESTRATOR_HOST="localhost"
 java -jar core_engines/gateway-service-java/target/gateway-service-1.0.0.jar > /dev/null 2>&1 &
 sleep 5 # Allow Spring contexts to complete database validation matches
+
+# 3. Launch the Compiled C++ Audio Ingestion Node
+log_info "Booting High-Performance C++ Audio PCM Processor..."
+export GATEWAY_URL="http://localhost:8080/api/v1/gateway/dispatch"
+
+./core_engines/audio-processor-cpp/build/audio_processor > /dev/null 2>&1 &
+sleep 2
 
 log_success "All network systems online. Launching operational control panel dashboard..."
 log_warn "Keep terminal workspace open to maintain active system tracing logging threads."
 log_info "Access your executive BI reporting panel at: http://localhost:8501"
 
-# Launch Streamlit web dashboard blocks blocking execution stream natively
+# Launch Streamlit web dashboard natively
 streamlit run ui_analytics/app.py

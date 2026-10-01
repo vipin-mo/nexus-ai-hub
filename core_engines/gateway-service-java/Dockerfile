@@ -1,12 +1,20 @@
+# --- Stage 1: Native Application Compilation ---
+FROM maven:3.8.5-openjdk-17 AS builder
+
+WORKDIR /build
+COPY pom.xml .
+# Cache maven dependencies layer independently
+RUN mvn dependency:go-offline -B 2>/dev/null || true
+
+COPY src ./src
+RUN mvn clean package -DskipTests
+
+# --- Stage 2: High-Performance Runtime Minimal Layer ---
 FROM eclipse-temurin:17-jre-jammy
 
-# Install Python 3 so the Java gateway can execute orchestration scripts
-RUN apt-get update && apt-get install -y python3 python3-pip && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
-
-# Extract the production compiled JAR target directly into the image path layout context
-COPY target/*.jar app.jar
+# Extract the production compiled JAR target directly from the builder image context
+COPY --from=builder /build/target/*.jar app.jar
 
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

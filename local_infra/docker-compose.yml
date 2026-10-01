@@ -11,7 +11,12 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ../data_pipeline/storage/postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexus_admin -d nexus_operational"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   # 2. NoSQL Layer (Polymorphic Agent Memory & Long-Term Context Traces)
   mongodb:
@@ -24,7 +29,12 @@ services:
     ports:
       - "27017:27017"
     volumes:
-      - ../data_pipeline/storage/mongo_data:/data/db
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --eval 'db.runCommand(\"ping\")' --quiet"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   # 3. MLOps Layer (Model Parameter Tracking & Prompt Versioning Registry)
   mlflow:
@@ -36,6 +46,12 @@ services:
     volumes:
       - ./mlflow/mlruns:/mlruns
     command: mlflow server --backend-store-uri sqlite:///mlruns/mlflow.db --default-artifact-root /mlruns --host 0.0.0.0 --port 5000
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   # 4. Python LangGraph AI Orchestration Engine (WebSocket Server)
   python-orchestrator:
@@ -51,10 +67,14 @@ services:
       - MLFLOW_TRACKING_URI=http://mlflow:5000
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
     extra_hosts:
-      - "host.docker.internal:host-gateway" # Ensures clean local system bridge loopbacks on Linux/Docker clusters
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - pipeline_storage:/app/data_pipeline/storage
     depends_on:
-      - mongodb
-      - mlflow
+      mongodb:
+        condition: service_healthy
+      mlflow:
+        condition: service_started
 
   # 5. Java Enterprise Gateway Routing Layer
   gateway-service:
@@ -72,8 +92,10 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      - postgres
-      - python-orchestrator
+      postgres:
+        condition: service_healthy
+      python-orchestrator:
+        condition: service_started
 
   # 6. Compiled High-Performance Audio Processing Engine
   audio-processor:
@@ -83,4 +105,10 @@ services:
     environment:
       - GATEWAY_URL=http://gateway-service:8080/api/v1/gateway/dispatch
     depends_on:
-      - gateway-service
+      gateway-service:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  mongo_data:
+  pipeline_storage:

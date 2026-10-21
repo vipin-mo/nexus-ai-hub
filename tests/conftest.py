@@ -20,12 +20,13 @@ OFFLINE_ENV = {
 
 
 def clear_caches() -> None:
-    from ai_orchestrator import config, graph, llm, memory, recommender, router, telemetry
+    from ai_orchestrator import config, graph, llm, memory, pii, recommender, router, security, telemetry
     from ai_orchestrator.knowledge import rag
 
     for fn in (config.get_settings, llm.spend_tracker, llm._local_reasoner, llm._cloud_reasoner,
                llm.get_local_model, memory.get_memory, recommender.get_recommender, router.get_router,
-               rag.get_retriever, telemetry.get_event_log, graph.build_graph):
+               rag.get_retriever, telemetry.get_event_log, graph.build_graph, security.get_guard,
+               pii.get_redactor):
         if hasattr(fn, "cache_clear"):  # tests may monkeypatch a factory with a plain lambda
             fn.cache_clear()
     telemetry.reset_tracing_state()

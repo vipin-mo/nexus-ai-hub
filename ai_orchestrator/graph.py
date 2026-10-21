@@ -28,13 +28,15 @@ import mlflow
 from langgraph.graph import END, START, StateGraph
 from mlflow.entities import SpanType
 
-from ai_orchestrator.config import get_settings, load_yaml
+from ai_orchestrator.config import get_settings
 from ai_orchestrator.knowledge.rag import get_retriever
 from ai_orchestrator.llm import LLMError, get_fallback_reasoner, get_reasoner
 from ai_orchestrator.memory import get_memory, session_key
+from ai_orchestrator.pii import get_redactor
 from ai_orchestrator.prompts import PROMPT_VERSION, REASONER_SYSTEM_PROMPT, build_reasoner_input
 from ai_orchestrator.recommender import get_recommender
 from ai_orchestrator.router import get_router
+from ai_orchestrator.security import get_guard
 from ai_orchestrator.telemetry import get_event_log, init_tracing
 
 log = logging.getLogger(__name__)
@@ -65,16 +67,20 @@ def _elapsed(started: float) -> float:
 
 
 def guard_node(state: AgentState) -> dict:
-    """Reject requests that match the security policy before any model sees them."""
+    """Block attacks, then redact PII so no model, log or store ever sees the raw identifiers."""
     started = time.perf_counter()
+    guard = get_guard()
     query = state["query"]
-    banned = load_yaml("security_policies.json").get("banned_keywords", [])
-    hit = next((kw for kw in banned if kw.lower() in query.lower()), None)
-    security = {"passed": hit is None, "layer": "rules" if hit else "none",
-                "category": "banned_keyword" if hit else None, "detail": hit}
-    update: dict[str, Any] = {"clean_query": query, "security": security, "timings_ms": {"guard": _elapsed(started)}}
-    if hit:
-        update["answer"] = "Request blocked by the security policy."
+    rules = guard.check_rules(query)
+    redaction = get_redactor().redact(query) if rules.passed else None
+    verdict = rules if not rules.passed or not guard.llm_scan else guard.check_llm(redaction.text)
+    security = {**verdict.to_dict(), "policy_version": guard.version,
+                "pii_redacted": redaction.counts if redaction else {}}
+    update: dict[str, Any] = {"clean_query": redaction.text if redaction else "[blocked]", "security": security,
+                              "timings_ms": {"guard": _elapsed(started)}}
+    if not verdict.passed:
+        update["answer"] = ("Request blocked by the security policy "
+                            f"({verdict.category}). If this is a mistake, rephrase the question.")
     return update
 
 
@@ -121,9 +127,11 @@ def reason_node(state: AgentState) -> dict:
         log.warning("Primary reasoner failed (%s); answering with local fallback", exc)
         result = fallback.complete(REASONER_SYSTEM_PROMPT, user_input)
         degraded = True
-    memory.append(key, state["clean_query"], result.text,
+    # Output filter: models can echo identifiers from documents or history.
+    answer = get_redactor().redact(result.text).text
+    memory.append(key, state["clean_query"], answer,
                   {"request_id": state["request_id"], "route": state.get("route", {}).get("intent")})
-    return {"answer": result.text, "llm": result.to_dict(), "degraded": degraded,
+    return {"answer": answer, "llm": result.to_dict(), "degraded": degraded,
             "history_turns": len(history), "timings_ms": {"reason": _elapsed(started)}}
 
 

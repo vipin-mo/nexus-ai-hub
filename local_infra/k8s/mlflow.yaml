@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: mlflow-data}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: {requests: {storage: 2Gi}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: mlflow}
+spec:
+  selector: {app: mlflow}
+  ports: [{port: 5000, targetPort: 5000}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: mlflow}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app: mlflow}}
+  template:
+    metadata: {labels: {app: mlflow}}
+    spec:
+      enableServiceLinks: false   # no docker-links env vars (ORCHESTRATOR_PORT=tcp://...)
+      securityContext: {runAsNonRoot: true, runAsUser: 1000, fsGroup: 1000, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: mlflow
+          image: ghcr.io/mlflow/mlflow:v3.17.2
+          args: ["mlflow", "server", "--host", "0.0.0.0", "--port", "5000",
+                 "--backend-store-uri", "sqlite:////mlflow/mlflow.db",
+                 "--artifacts-destination", "/mlflow/artifacts", "--serve-artifacts",
+                 "--allowed-hosts", "mlflow,mlflow:5000,localhost,localhost:5000", "--workers", "1"]
+          env: [{name: HOME, value: /mlflow}]
+          ports: [{containerPort: 5000}]
+          readinessProbe: {httpGet: {path: /health, port: 5000}, periodSeconds: 10}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          resources:
+            requests: {cpu: 100m, memory: 512Mi}
+            limits: {cpu: "1", memory: 2Gi}
+          volumeMounts: [{name: data, mountPath: /mlflow}]
+      volumes: [{name: data, persistentVolumeClaim: {claimName: mlflow-data}}]

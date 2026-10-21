@@ -1,0 +1,25 @@
+# kubectl apply -k local_infra/k8s   (after: cp secrets.env.example secrets.env and fill it in)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: nexus
+labels:
+  - pairs: {app.kubernetes.io/part-of: nexus-ai}
+resources:
+  - namespace.yaml
+  - postgres.yaml
+  - mongodb.yaml
+  - mlflow.yaml
+  - orchestrator.yaml
+  - gateway.yaml
+  - audio-processor.yaml
+  - dashboard.yaml
+secretGenerator:
+  - name: nexus-secrets
+    envs: [secrets.env]          # gitignored; see secrets.env.example
+configMapGenerator:
+  - name: nexus-config
+    literals:
+      - OLLAMA_BASE_URL=http://host.minikube.internal:11434
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - NEXUS_REASONER_PROVIDER=ollama
+      - NEXUS_DATA_DIR=/data

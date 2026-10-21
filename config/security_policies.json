@@ -1,12 +1,40 @@
 {
-  "security_policy_version": "1.0.0",
-  "banned_keywords": [
-    "DROP TABLE",
-    "DELETE FROM users",
-    "IGNORE PREVIOUS INSTRUCTIONS"
+  "security_policy_version": "2.0.0",
+  "runtime": {
+    "llm_scan": true,
+    "fail_closed": true,
+    "max_query_chars": 4000
+  },
+  "rules": [
+    {"id": "inj-override", "category": "prompt_injection", "variant": "spaced",
+     "pattern": "\\b(ignore|disregard|forget|override|bypass|skip)\\W+(?:\\w+\\W+){0,4}?(instructions?|prompts?|rules|directives?|guidelines?|guardrails?|restrictions?|programming)\\b"},
+    {"id": "inj-override-compact", "category": "prompt_injection", "variant": "compact",
+     "pattern": "(ignore|disregard|forget|override)(all|the|any|your)*(previous|prior|above|earlier|system)(instructions?|prompts?|rules)"},
+    {"id": "inj-role-hijack", "category": "jailbreak", "variant": "spaced",
+     "pattern": "\\b(you are now|from now on,? you are|act as|pretend (to be|you are)|roleplay as|simulate)\\b.{0,40}\\b(dan|developer mode|jailbr\\w*|unfiltered|unrestricted|uncensored|no (rules|restrictions|limits|filters)|evil)\\b"},
+    {"id": "inj-mode-switch", "category": "jailbreak", "variant": "spaced",
+     "pattern": "\\b(developer|god|dan|jailbreak|debug|sudo) mode\\b.{0,30}\\b(enabled?|on|activated?|now)\\b|\\benable (developer|god|dan|jailbreak) mode\\b"},
+    {"id": "inj-fake-system", "category": "prompt_injection", "variant": "spaced",
+     "pattern": "<\\s*/?\\s*(system|assistant|instructions?)\\s*>|\\[\\s*(system|inst)\\s*\\]|#{2,}\\s*(system|new instructions?)\\b"},
+    {"id": "exfil-secrets", "category": "data_exfiltration", "variant": "spaced",
+     "pattern": "\\b(reveal|show|print|repeat|output|display|leak|dump|expose|give me|tell me)\\b.{0,40}\\b(system prompt|hidden (prompt|instructions)|initial instructions|your instructions|api[ _-]?keys?|passwords?|secrets?|credentials?|access tokens?|private keys?|connection strings?)\\b"},
+    {"id": "exfil-compact", "category": "data_exfiltration", "variant": "compact",
+     "pattern": "(reveal|print|show|repeat|dump)(your|the)*(system|hidden|initial)(prompt|instructions)"},
+    {"id": "sql-drop", "category": "destructive_sql", "variant": "spaced",
+     "pattern": "\\b(drop|truncate)\\s+(table|database|schema)\\s+(if\\s+exists\\s+)?[\\w.\"`]+\\s*(;|--|$|cascade)"},
+    {"id": "sql-delete-all", "category": "destructive_sql", "variant": "spaced",
+     "pattern": "\\bdelete\\s+from\\s+[\\w.\"`]+\\s*(;|--|$)"},
+    {"id": "sql-stacked", "category": "destructive_sql", "variant": "spaced",
+     "pattern": ";\\s*(drop|delete|truncate|update|insert|alter|grant)\\s+\\w+"},
+    {"id": "sql-injection", "category": "sql_injection", "variant": "spaced",
+     "pattern": "\\bunion\\s+(all\\s+)?select\\b|'\\s*or\\s+'?1'?\\s*=\\s*'?1|\\bor\\s+1\\s*=\\s*1\\b|\\bxp_cmdshell\\b"},
+    {"id": "os-destructive", "category": "destructive_command", "variant": "spaced",
+     "pattern": "\\brm\\s+-[rf]{2}\\s+/|\\bmkfs(\\.\\w+)?\\s|:\\(\\)\\s*\\{\\s*:\\|:&\\s*\\};:|\\bshutdown\\s+-h\\s+now\\b"}
   ],
-  "role_permissions": {
-    "nexus_admin": ["READ", "WRITE", "EXECUTE"],
-    "nexus_agent": ["READ"]
+  "pii": {
+    "ner_enabled": true,
+    "allow_terms": ["Claude", "Anthropic", "Ollama", "Qwen", "Llama", "Nexus", "NexusAI", "Jira", "Spark", "PySpark",
+                    "Streamlit", "DuckDB", "MLflow", "Postgres", "PostgreSQL", "MongoDB", "Kubernetes", "Docker",
+                    "Flyway", "Chroma", "ChromaDB", "LangGraph", "LlamaIndex", "Whisper", "Friday", "Monday"]
   }
 }

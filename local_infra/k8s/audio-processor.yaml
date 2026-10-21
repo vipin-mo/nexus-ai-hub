@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: whisper-models}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: {requests: {storage: 1Gi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: audio-processor}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app: audio-processor}}
+  template:
+    metadata: {labels: {app: audio-processor}}
+    spec:
+      enableServiceLinks: false   # no docker-links env vars (ORCHESTRATOR_PORT=tcp://...)
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, fsGroup: 10001, seccompProfile: {type: RuntimeDefault}}
+      initContainers:
+        - name: fetch-model           # downloads ggml-base.en.bin once into the PVC
+          image: curlimages/curl:8.10.1
+          command: ["sh", "-c", "test -f /models/ggml-base.en.bin || curl -fL -o /models/ggml-base.en.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin"]
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: models, mountPath: /models}]
+      containers:
+        - name: audio-processor
+          image: nexus/audio-processor:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: GATEWAY_URL, value: "http://gateway:8080/api/v1/audio/transcripts"}
+            - {name: WHISPER_MODEL, value: /models/ggml-base.en.bin}
+            - {name: NEXUS_INGEST_API_KEY, valueFrom: {secretKeyRef: {name: nexus-secrets, key: NEXUS_INGEST_API_KEY}}}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          resources:
+            requests: {cpu: 500m, memory: 512Mi}
+            limits: {cpu: "2", memory: 1Gi}
+          volumeMounts:
+            - {name: models, mountPath: /models, readOnly: true}
+            - {name: data, mountPath: /data}
+      volumes:
+        - {name: models, persistentVolumeClaim: {claimName: whisper-models}}
+        - {name: data, persistentVolumeClaim: {claimName: nexus-data}}

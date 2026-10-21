@@ -1,0 +1,41 @@
+# Quality gate. Each key is <suite>.<metric>; a "_max" suffix means "must not exceed".
+# Thresholds sit a little below the measured baseline (see BENCHMARKS.md) so normal noise
+# passes and real regressions fail. Raise them when a change improves the baseline.
+
+offline:            # CI: fake LLM, hashing embeddings, rules-only security - deterministic
+  retrieval.hybrid_hit_at_3: 0.85        # measured 0.893
+  retrieval.sparse_hit_at_3: 0.90        # measured 0.964
+  routing.classifier_accuracy: 0.83      # measured 0.867
+  security.rules_recall: 0.85            # measured 0.879
+  security.rules_false_positive_rate_max: 0.05   # measured 0.000
+  security.holdout_rules_recall: 0.10    # measured 0.150 - rules alone generalise poorly (see BENCHMARKS.md)
+  recommendation.top1_accuracy: 0.80     # measured 0.846
+  recommendation.top3_accuracy: 0.90     # measured 0.923
+  recommendation.role_violations_max: 0
+  recommendation.offline_cf_hit_at_1: 0.80       # measured 0.878 (popularity baseline 0.392)
+  answers.retrieved_expected_source: 0.85        # measured 0.893
+
+local:              # Ollama: qwen2.5:3b (answers, security scan, routing fallback), nomic embeddings
+  retrieval.hybrid_hit_at_3: 0.92        # measured 0.964
+  routing.final_accuracy: 0.86           # measured 0.900 (classifier + LLM fallback)
+  security.full_recall: 0.93             # measured 0.970 (dev set)
+  security.full_false_positive_rate_max: 0.05    # measured 0.000 (dev set)
+  security.holdout_full_recall: 0.70     # measured 0.750 (held-out set, never tuned on)
+  security.holdout_full_false_positive_rate_max: 0.10   # measured 0.050
+  recommendation.top1_accuracy: 0.80     # measured 0.846
+  recommendation.role_violations_max: 0
+  answers.fact_recall: 0.85              # measured 0.906
+  answers.retrieved_expected_source: 0.90        # measured 0.964
+  answers.cites_expected_source: 0.35    # measured 0.429
+  answers.groundedness: 0.90             # measured 0.975 (local judge; only with --judge)
+  answers.refuses_unanswerable: 0.75     # measured 0.75 (3 of 4 - small set)
+
+cloud:              # same quality bar; Claude should meet or beat the local models
+  security.full_recall: 0.93
+  security.full_false_positive_rate_max: 0.05
+  security.holdout_full_recall: 0.70
+  security.holdout_full_false_positive_rate_max: 0.10
+  answers.fact_recall: 0.85
+  answers.retrieved_expected_source: 0.90
+  answers.cites_expected_source: 0.40
+  answers.refuses_unanswerable: 0.75

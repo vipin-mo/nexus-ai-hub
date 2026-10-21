@@ -1,114 +1,142 @@
+# NexusAI local stack. Values are interpolated from the root .env (scripts/generate_env.sh), and each
+# service receives only the variables it needs. Ollama runs on the host (GPU/Metal) and is reached
+# through host.docker.internal. Use the Makefile, or from the repo root:
+#
+#   docker compose --env-file .env -f local_infra/docker-compose.yml up -d --build
+#   docker compose --env-file .env -f local_infra/docker-compose.yml --profile batch run --rm pipeline
+name: nexus
+
 services:
-  # 1. Relational Database Layer (Operational Metadata & Gateway State)
   postgres:
-    image: postgres:15-alpine
-    container_name: nexus_postgres
-    restart: unless-stopped
+    image: postgres:16-alpine
     environment:
-      POSTGRES_USER: nexus_admin
-      POSTGRES_PASSWORD: nexus_secure_password
-      POSTGRES_DB: nexus_operational
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      POSTGRES_USER: ${POSTGRES_USER:-nexus_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-nexus_operational}
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: [postgres_data:/var/lib/postgresql/data]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nexus_admin -d nexus_operational"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
-      timeout: 5s
-      retries: 5
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
 
-  # 2. NoSQL Layer (Polymorphic Agent Memory & Long-Term Context Traces)
   mongodb:
-    image: mongo:6.0
-    container_name: nexus_mongodb
-    restart: unless-stopped
+    image: mongo:7.0
     environment:
-      MONGO_INITDB_ROOT_USERNAME: nexus_admin
-      MONGO_INITDB_ROOT_PASSWORD: nexus_secure_password
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-nexus_admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?set MONGO_PASSWORD in .env}
+    ports: ["127.0.0.1:27017:27017"]
+    volumes: [mongo_data:/data/db]
     healthcheck:
-      test: ["CMD-SHELL", "mongosh --eval 'db.runCommand(\"ping\")' --quiet"]
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping: 1}).ok"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+    restart: unless-stopped
 
-  # 3. MLOps Layer (Model Parameter Tracking & Prompt Versioning Registry)
   mlflow:
-    image: ghcr.io/mlflow/mlflow:v2.10.2
-    container_name: nexus_mlflow
-    restart: unless-stopped
-    ports:
-      - "5001:5000"
-    volumes:
-      - ./mlflow/mlruns:/mlruns
-    command: mlflow server --backend-store-uri sqlite:///mlruns/mlflow.db --default-artifact-root /mlruns --host 0.0.0.0 --port 5000
+    image: ghcr.io/mlflow/mlflow:v3.17.2
+    command: >
+      mlflow server --host 0.0.0.0 --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db --artifacts-destination /mlflow/artifacts --serve-artifacts
+      --allowed-hosts mlflow,mlflow:5000,localhost,localhost:5001,127.0.0.1,127.0.0.1:5001
+    ports: ["127.0.0.1:5001:5000"]
+    volumes: [mlflow_data:/mlflow]
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
-      interval: 5s
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health', timeout=2)"]
+      interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 5s
-
-  # 4. Python LangGraph AI Orchestration Engine (WebSocket Server)
-  python-orchestrator:
-    build:
-      context: ..
-      dockerfile: Dockerfile.python
-    container_name: nexus_python_orchestrator
+      retries: 10
+      start_period: 15s
     restart: unless-stopped
-    ports:
-      - "8765:8765"
-    environment:
-      - MONGO_URI=mongodb://nexus_admin:nexus_secure_password@mongodb:27017/nexus_ai_ops?authSource=admin
-      - MLFLOW_TRACKING_URI=http://mlflow:5000
-      - OLLAMA_BASE_URL=http://host.docker.internal:11434
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    volumes:
-      - pipeline_storage:/app/data_pipeline/storage
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      mlflow:
-        condition: service_started
 
-  # 5. Java Enterprise Gateway Routing Layer
-  gateway-service:
+  orchestrator:
+    build: {context: .., dockerfile: Dockerfile.python, target: app}
+    image: nexus/python:latest
+    environment:
+      NEXUS_INTERNAL_TOKEN: ${NEXUS_INTERNAL_TOKEN:?set NEXUS_INTERNAL_TOKEN in .env}
+      NEXUS_REASONER_PROVIDER: ${NEXUS_REASONER_PROVIDER:-ollama}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      NEXUS_SPEND_CAP_USD: ${NEXUS_SPEND_CAP_USD:-2.00}
+      MONGO_URI: mongodb://${MONGO_USER:-nexus_admin}:${MONGO_PASSWORD}@mongodb:27017/?authSource=admin
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      # Not OLLAMA_BASE_URL: a host-side value such as localhost:11434 in .env is wrong inside a container.
+      OLLAMA_BASE_URL: ${NEXUS_CONTAINER_OLLAMA_URL:-http://host.docker.internal:11434}
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    volumes: [nexus_data:/data]
+    depends_on:
+      mongodb: {condition: service_healthy}
+      mlflow: {condition: service_healthy}
+    restart: unless-stopped     # internal only: no host port, reachable from the gateway
+
+  gateway:
     build: ../core_engines/gateway-service-java
-    container_name: nexus_java_gateway
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
+    image: nexus/gateway:latest
     environment:
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/nexus_operational"
-      SPRING_DATASOURCE_USERNAME: "nexus_admin"
-      SPRING_DATASOURCE_PASSWORD: "nexus_secure_password"
-      ORCHESTRATOR_HOST: "python-orchestrator"
-      OLLAMA_BASE_URL: "http://host.docker.internal:11434"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      DB_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-nexus_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-nexus_operational}
+      ORCHESTRATOR_HOST: orchestrator
+      NEXUS_INTERNAL_TOKEN: ${NEXUS_INTERNAL_TOKEN}
+      NEXUS_ADMIN_API_KEY: ${NEXUS_ADMIN_API_KEY:?set NEXUS_ADMIN_API_KEY in .env}
+      NEXUS_ANALYST_API_KEY: ${NEXUS_ANALYST_API_KEY:?set NEXUS_ANALYST_API_KEY in .env}
+      NEXUS_INGEST_API_KEY: ${NEXUS_INGEST_API_KEY:?set NEXUS_INGEST_API_KEY in .env}
+    ports: ["127.0.0.1:8080:8080"]
     depends_on:
-      postgres:
-        condition: service_healthy
-      python-orchestrator:
-        condition: service_started
+      postgres: {condition: service_healthy}
+      orchestrator: {condition: service_healthy}
+    restart: unless-stopped
 
-  # 6. Compiled High-Performance Audio Processing Engine
   audio-processor:
     build: ../core_engines/audio-processor-cpp
-    container_name: nexus_cpp_processor
-    restart: unless-stopped
+    image: nexus/audio-processor:latest
     environment:
-      - GATEWAY_URL=http://gateway-service:8080/api/v1/gateway/dispatch
+      NEXUS_INGEST_API_KEY: ${NEXUS_INGEST_API_KEY}
+      GATEWAY_URL: http://gateway:8080/api/v1/audio/transcripts
+      WHISPER_MODEL: /models/ggml-base.en.bin
+    volumes:
+      - nexus_data:/data
+      - ../models/whisper:/models:ro
     depends_on:
-      gateway-service:
-        condition: service_started
+      gateway: {condition: service_healthy}
+    restart: unless-stopped
+
+  dashboard:
+    image: nexus/python:latest
+    command: ["streamlit", "run", "ui_analytics/app.py", "--server.address=0.0.0.0", "--server.port=8501",
+              "--server.headless=true", "--browser.gatherUsageStats=false"]
+    environment:
+      NEXUS_ANALYST_API_KEY: ${NEXUS_ANALYST_API_KEY}
+      NEXUS_ADMIN_API_KEY: ${NEXUS_ADMIN_API_KEY}
+      NEXUS_GATEWAY_URL: http://gateway:8080
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      NEXUS_REPORTS_DIR: /reports
+    ports: ["127.0.0.1:8501:8501"]
+    volumes:
+      - nexus_data:/data
+      - ../reports:/reports:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    depends_on:
+      gateway: {condition: service_healthy}
+    restart: unless-stopped
+
+  pipeline:                       # one-shot batch job: --profile batch run --rm pipeline
+    build: {context: .., dockerfile: Dockerfile.python, target: pipeline}
+    image: nexus/pipeline:latest
+    profiles: [batch]
+    environment:
+      LINES: ${LINES:-100000}
+    volumes: [nexus_data:/data]
 
 volumes:
   postgres_data:
   mongo_data:
-  pipeline_storage:
+  mlflow_data:
+  nexus_data:

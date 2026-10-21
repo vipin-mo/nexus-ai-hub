@@ -1,25 +1,42 @@
-FROM python:3.10-slim
-
-WORKDIR /app
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    curl \
-    libsqlite3-dev \
-    && rm -rf /var/lib/apt/lists/*
-
+# Python images. Targets:
+#   app       orchestrator (default command) and dashboard (command override)
+#   pipeline  adds a JRE (Spark) and full Perl (JSON::PP) for the batch log pipeline
+# --- dependencies: some packages (PyStemmer) need a compiler on linux/arm64; keep it out of runtime
+FROM python:3.11-slim AS deps
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential && rm -rf /var/lib/apt/lists/*
+ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m venv /opt/venv && /opt/venv/bin/pip install -r requirements.txt
 
-# Pre-download DistilBERT weights into container cache path
-ENV HF_HOME=/app/.cache
-RUN python3 -c "from transformers import AutoTokenizer, AutoModelForSequenceClassification; AutoTokenizer.from_pretrained('distilbert-base-uncased'); AutoModelForSequenceClassification.from_pretrained('distilbert-base-uncased')"
+FROM python:3.11-slim AS app
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PATH=/opt/venv/bin:$PATH \
+    PYTHONPATH=/app MLFLOW_DISABLE_AGENT_HINT=1 MLFLOW_DISABLE_TELEMETRY=true \
+    NEXUS_DATA_DIR=/data NEXUS_ARTIFACTS_DIR=/app/artifacts NLTK_DATA=/app/nltk_data
+WORKDIR /app
+COPY --from=deps /opt/venv /opt/venv
+# NLTK data in a directory only the image owns (NLTK refuses shared-writable data directories).
+RUN python -c "import nltk; [nltk.download(p, download_dir='/app/nltk_data', quiet=True, raise_on_error=True) for p in ('stopwords', 'punkt_tab')]"
 
-COPY . .
+COPY config ./config
+COPY ai_orchestrator ./ai_orchestrator
+COPY evals ./evals
+COPY ui_analytics ./ui_analytics
+COPY data_pipeline ./data_pipeline
+# Ship a trained router with the image; the registry copy (NEXUS_ROUTER_MODEL_URI) overrides it.
+RUN python -m ai_orchestrator.training.train_router --output /app/artifacts/intent_router.joblib
 
-# Structural environment flags to ensure safe application context execution paths
-ENV PYTHONPATH=/app
-ENV PYTHONUNBUFFERED=1
-EXPOSE 8765
+RUN useradd --create-home --uid 10001 nexus && mkdir -p /data && chown -R nexus /data /app/artifacts
+USER nexus
+EXPOSE 8765 8501
+HEALTHCHECK --interval=10s --timeout=3s --start-period=60s --retries=6 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8765/healthz', timeout=2)"
+CMD ["python", "-m", "ai_orchestrator.server"]
 
-CMD ["python3", "ai_orchestrator/agents/streaming_server.py"]
+FROM app AS pipeline
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends openjdk-21-jre-headless perl \
+    && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir pyspark==4.2.0
+USER nexus
+HEALTHCHECK NONE
+CMD ["bash", "data_pipeline/run_pipeline.sh"]

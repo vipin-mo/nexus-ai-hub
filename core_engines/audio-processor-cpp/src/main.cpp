@@ -1,135 +1,242 @@
-#include <iostream>
-#include <vector>
-#include <string>
+// NexusAI audio ingestion: WAV -> voice activity detection -> whisper.cpp speech-to-text ->
+// transcript POSTed to the Java gateway (which authenticates, audits and forwards it to the agent).
+//
+//   audio_processor --file question.wav [--no-send]        process one file, print JSON
+//   audio_processor --watch data/audio_inbox               service mode: process files as they arrive
+//   audio_processor --bench question.wav [--runs 5]        timing breakdown and real-time factor
+//
+// Environment: WHISPER_MODEL, GATEWAY_URL, NEXUS_INGEST_API_KEY, WHISPER_THREADS.
+
+#include <atomic>
 #include <chrono>
-#include <thread>
-#include <memory>
-#include <utility>
+#include <csignal>
 #include <cstdlib>
-#include <curl/curl.h>
-#include "audio_chunker.hpp"
+#include <algorithm>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <optional>
+#include <sstream>
+#include <string>
+#include <thread>
+#include <vector>
 
-// Structure defining raw telemetry frame
-struct AudioFrame {
-    uint32_t frame_id;
-    std::vector<int16_t> pcm_payload;
-    double amplitude_db;
-};
+#include "gateway_client.hpp"
+#include "transcriber.hpp"
+#include "vad.hpp"
+#include "wav.hpp"
 
-// Core Pipeline Processor Implementation
-class IngestionPipeline {
-private:
-    std::string fallback_target_route;
-    uint32_t total_processed_frames;
+namespace fs = std::filesystem;
+using Clock = std::chrono::steady_clock;
 
-    // Helper method to dispatch payload safely via libcurl
-    void dispatchToGateway(uint32_t frameId, double amplitude) {
-        CURL* curl = curl_easy_init();
-        if (!curl) {
-            std::cerr << "❌ [C++ Core Engine] Failed to initialize libcurl handle." << std::endl;
-            return;
-        }
+namespace {
 
-        // Construct a simple JSON payload manually to keep dependencies light
-        std::string json_payload = "{\"frame_id\":" + std::to_string(frameId) +
-                                   ",\"amplitude_db\":" + std::to_string(amplitude) +
-                                   ",\"status\":\"SPEECH_DETECTED\"}";
+std::atomic<bool> g_stop{false};
+void on_signal(int) { g_stop = true; }
 
-        // Configure standard HTTP POST settings
-        curl_easy_setopt(curl, CURLOPT_URL, fallback_target_route.c_str());
-        curl_easy_setopt(curl, CURLOPT_POST, 1L);
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_payload.c_str());
+std::string env_or(const char* name, const std::string& fallback) {
+    const char* v = std::getenv(name);
+    return v && *v ? std::string(v) : fallback;
+}
 
-        // Match network timeout metrics to guarantee low-latency processing bounds
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+double ms_since(Clock::time_point t) { return std::chrono::duration<double, std::milli>(Clock::now() - t).count(); }
 
-        // Set structural HTTP header options
-        struct curl_slist* headers = nullptr;
-        headers = curl_slist_append(headers, "Content-Type: application/json");
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+struct FileResult {
+    std::string file;
+    double duration_ms = 0, speech_ratio = 0, peak_dbfs = -120;
+    double decode_ms = 0, vad_ms = 0, stt_ms = 0, rtf = 0;
+    std::string transcript;
+    long http_status = 0;
+    std::string gateway_reply;
+    std::string error;
 
-        // Execute the synchronous network block frame transfer
-        CURLcode res = curl_easy_perform(curl);
-        if (res != CURLE_OK) {
-            std::cerr << "⚠️ [Network Dispatched Drop] Gateway post failed: "
-                      << curl_easy_strerror(res) << std::endl;
-        } else {
-            long response_code = 0;
-            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
-            std::cout << "✅ [Network Dispatched Success] Gateway returned HTTP "
-                      << response_code << std::endl;
-        }
-
-        // Clean up resources cleanly
-        curl_slist_free_all(headers);
-        curl_easy_cleanup(curl);
-    }
-
-public:
-    explicit IngestionPipeline(std::string target)
-        : fallback_target_route(std::move(target)), total_processed_frames(0) {}
-
-    void processAudioStreamFrame(const std::shared_ptr<AudioFrame>& frame) {
-        total_processed_frames++;
-
-        std::cout << "🎙️  [C++ Core Engine] Processing Audio Frame ID: " << frame->frame_id
-                  << " | Size: " << frame->pcm_payload.size() << " samples"
-                  << " | Energy: " << frame->amplitude_db << " dB" << std::endl;
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(15));
-
-        if (frame->amplitude_db > -20.0) {
-            std::cout << "🚀 [C++ Core Engine] Human Speech Identified on Frame " << frame->frame_id
-                      << ". Dispatching transcription tokens to Java Gateway REST endpoint ["
-                      << fallback_target_route << "]..." << std::endl;
-
-            // Fulfills the missing REST network dispatch logic
-            dispatchToGateway(frame->frame_id, frame->amplitude_db);
-        }
-    }
-
-    [[nodiscard]] uint32_t getProcessedFrameCount() const {
-        return total_processed_frames;
+    [[nodiscard]] std::string to_json() const {
+        std::ostringstream o;
+        o << std::fixed << std::setprecision(2) << "{\"file\":\"" << nexus::json_escape(file) << "\""
+          << ",\"duration_ms\":" << duration_ms << ",\"speech_ratio\":" << speech_ratio
+          << ",\"peak_dbfs\":" << peak_dbfs << ",\"decode_ms\":" << decode_ms << ",\"vad_ms\":" << vad_ms
+          << ",\"stt_ms\":" << stt_ms << ",\"rtf\":" << std::setprecision(4) << rtf
+          << ",\"transcript\":\"" << nexus::json_escape(transcript) << "\",\"http_status\":" << http_status;
+        if (!error.empty()) o << ",\"error\":\"" << nexus::json_escape(error) << "\"";
+        if (!gateway_reply.empty()) o << ",\"gateway_reply\":" << gateway_reply;
+        o << "}";
+        return o.str();
     }
 };
 
-int main() {
-    // Globally initialize curl environment state once upon initial engine execution
-    curl_global_init(CURL_GLOBAL_ALL);
+class Pipeline {
+  public:
+    Pipeline(const nexus::Transcriber& stt, const nexus::GatewayClient* gateway) : stt_(stt), gateway_(gateway) {}
 
-    std::cout << "========================================================================\n"
-              << "Starting High-Performance NexusAI Audio Ingestion Node...\n"
-              << "========================================================================" << std::endl;
+    FileResult process(const fs::path& path) const {
+        FileResult r;
+        r.file = path.filename().string();
+        auto t = Clock::now();
+        const nexus::PcmAudio audio = nexus::resample(nexus::read_wav(path), nexus::kTargetSampleRate);
+        r.decode_ms = ms_since(t);
+        r.duration_ms = audio.duration_ms();
 
-    // Dynamically fetch target URL from environment or fallback to default service route
-    const char* env_gateway = std::getenv("GATEWAY_URL");
-    std::string gateway_url = (env_gateway != nullptr) ? std::string(env_gateway) : "http://gateway-service:8080/api/v1/gateway/dispatch";
+        t = Clock::now();
+        const nexus::VadResult vad = nexus::detect_speech(audio.samples, audio.sample_rate);
+        r.vad_ms = ms_since(t);
+        r.speech_ratio = vad.speech_ratio();
+        r.peak_dbfs = vad.peak_dbfs;
+        if (vad.segments.empty()) {
+            r.error = "no speech detected";  // nothing sent: silence never reaches the models
+            return r;
+        }
 
-    AudioChunker chunker;
-    auto pipeline = std::make_unique<IngestionPipeline>(gateway_url);
-
-    for (uint32_t i = 1; i <= 3; ++i) {
-        std::vector<int16_t> mock_buffer(16000, 0);
-        chunker.sliceRawBuffer(mock_buffer, 4000);
-
-        auto mock_frame = std::make_shared<AudioFrame>();
-        mock_frame->frame_id = i;
-        mock_frame->pcm_payload = mock_buffer;
-        mock_frame->amplitude_db = (i == 2) ? -12.5 : -45.0;
-
-        pipeline->processAudioStreamFrame(mock_frame);
+        const auto transcript = stt_.transcribe(nexus::to_float(nexus::gather(audio.samples, vad.segments)));
+        r.transcript = transcript.text;
+        r.stt_ms = transcript.latency_ms;
+        r.rtf = r.duration_ms > 0 ? r.stt_ms / r.duration_ms : 0;
+        if (r.transcript.empty()) {
+            r.error = "empty transcript";
+            return r;
+        }
+        if (gateway_) {
+            std::ostringstream body;
+            body << std::fixed << std::setprecision(3) << "{\"transcript\":\"" << nexus::json_escape(r.transcript)
+                 << "\",\"audioFile\":\"" << nexus::json_escape(r.file) << "\",\"durationMs\":"
+                 << static_cast<long>(r.duration_ms) << ",\"speechRatio\":" << r.speech_ratio
+                 << ",\"sttLatencyMs\":" << static_cast<long>(r.stt_ms) << "}";
+            const auto reply = gateway_->post_json(body.str());
+            r.http_status = reply.status;
+            if (reply.status == 0) r.error = reply.error;
+            else if (!reply.body.empty() && reply.body.front() == '{') r.gateway_reply = reply.body;
+        }
+        return r;
     }
 
-    std::cout << "------------------------------------------------------------------------\n"
-              << "Stream analysis complete. Total frame elements captured: "
-              << pipeline->getProcessedFrameCount() << "\n"
-              << "Entering background listener thread lifecycle loop..." << std::endl;
+  private:
+    const nexus::Transcriber& stt_;
+    const nexus::GatewayClient* gateway_;
+};
 
-    while (true) {
-        std::this_thread::sleep_for(std::chrono::hours(1));
+int watch(const Pipeline& pipeline, const fs::path& inbox) {
+    const fs::path done = inbox.parent_path() / "audio_processed";
+    const fs::path failed = inbox.parent_path() / "audio_failed";
+    fs::create_directories(inbox);
+    fs::create_directories(done);
+    fs::create_directories(failed);
+    std::cerr << "[watch] listening for .wav files in " << inbox << "\n";
+    while (!g_stop) {
+        std::vector<fs::path> pending;
+        for (const auto& entry : fs::directory_iterator(inbox))
+            if (entry.is_regular_file() && entry.path().extension() == ".wav") pending.push_back(entry.path());
+        std::sort(pending.begin(), pending.end());
+        for (const auto& path : pending) {
+            if (g_stop) break;
+            // Skip files that are still being written (size changing).
+            const auto size = fs::file_size(path);
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            if (!fs::exists(path) || fs::file_size(path) != size) continue;
+            FileResult r;
+            try {
+                r = pipeline.process(path);
+            } catch (const std::exception& e) {
+                r.file = path.filename().string();
+                r.error = e.what();
+            }
+            const bool ok = r.error.empty() && r.http_status >= 200 && r.http_status < 300;
+            const fs::path dest = (ok || r.error == "no speech detected" ? done : failed) / path.filename();
+            fs::rename(path, dest);
+            std::ofstream(fs::path(dest).replace_extension(".json")) << r.to_json() << "\n";
+            std::cout << r.to_json() << std::endl;
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-
-    // Clean up curl globally before process termination
-    curl_global_cleanup();
+    std::cerr << "[watch] stopping\n";
     return 0;
+}
+
+int bench(const nexus::Transcriber& stt, const fs::path& file, int runs) {
+    Pipeline pipeline(stt, nullptr);
+    pipeline.process(file);  // warm-up (model weights into cache, GPU kernels compiled)
+    double decode = 0, vad = 0, total_stt = 0, duration = 0;
+    for (int i = 0; i < runs; ++i) {
+        const auto r = pipeline.process(file);
+        decode += r.decode_ms;
+        vad += r.vad_ms;
+        total_stt += r.stt_ms;
+        duration = r.duration_ms;
+    }
+    std::cout << std::fixed << std::setprecision(3) << "{\"file\":\"" << nexus::json_escape(file.filename().string())
+              << "\",\"runs\":" << runs << ",\"audio_ms\":" << duration << ",\"decode_ms\":" << decode / runs
+              << ",\"vad_ms\":" << vad / runs << ",\"stt_ms\":" << total_stt / runs
+              << ",\"rtf\":" << (total_stt / runs) / duration << "}" << std::endl;
+    return 0;
+}
+
+void usage() {
+    std::cerr << "usage: audio_processor (--file F.wav [--no-send] | --watch DIR | --bench F.wav [--runs N])"
+                 " [--model PATH]\n";
+}
+
+}  // namespace
+
+int main(int argc, char** argv) {
+    std::signal(SIGINT, on_signal);
+    std::signal(SIGTERM, on_signal);
+    nexus::CurlGlobal curl;
+
+    std::optional<std::string> file, watch_dir, bench_file;
+    std::string model = env_or("WHISPER_MODEL", "models/whisper/ggml-base.en.bin");
+    bool send = true;
+    int runs = 5;
+    for (int i = 1; i < argc; ++i) {
+        const std::string a = argv[i];
+        auto next = [&]() -> std::string {
+            if (i + 1 >= argc) throw std::invalid_argument(a + " needs a value");
+            return argv[++i];
+        };
+        try {
+            if (a == "--file") file = next();
+            else if (a == "--watch") watch_dir = next();
+            else if (a == "--bench") bench_file = next();
+            else if (a == "--model") model = next();
+            else if (a == "--runs") runs = std::stoi(next());
+            else if (a == "--no-send") send = false;
+            else { usage(); return 2; }
+        } catch (const std::exception& e) {
+            std::cerr << e.what() << "\n";
+            return 2;
+        }
+    }
+    if (!file && !watch_dir && !bench_file) {
+        usage();
+        return 2;
+    }
+
+    const int threads = std::stoi(env_or("WHISPER_THREADS", std::to_string(std::max(1u, std::thread::hardware_concurrency() / 2))));
+    std::unique_ptr<nexus::Transcriber> stt;
+    try {
+        stt = std::make_unique<nexus::Transcriber>(model, threads);
+    } catch (const std::exception& e) {
+        std::cerr << "error: " << e.what() << "\n  download the model with scripts/download_whisper_model.sh\n";
+        return 1;
+    }
+    if (bench_file) return bench(*stt, *bench_file, runs);
+
+    std::optional<nexus::GatewayClient> gateway;
+    if (send) {
+        const std::string key = env_or("NEXUS_INGEST_API_KEY", "");
+        if (key.empty()) {
+            std::cerr << "error: NEXUS_INGEST_API_KEY is not set (use --no-send to only transcribe)\n";
+            return 1;
+        }
+        gateway.emplace(env_or("GATEWAY_URL", "http://localhost:8080/api/v1/audio/transcripts"), key,
+                        std::chrono::seconds(150));
+    }
+    Pipeline pipeline(*stt, gateway ? &*gateway : nullptr);
+    if (watch_dir) return watch(pipeline, *watch_dir);
+    try {
+        const auto r = pipeline.process(*file);
+        std::cout << r.to_json() << std::endl;
+        return r.error.empty() ? 0 : 1;
+    } catch (const std::exception& e) {
+        std::cerr << "error: " << e.what() << "\n";
+        return 1;
+    }
 }

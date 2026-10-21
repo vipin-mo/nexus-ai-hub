@@ -1,0 +1,42 @@
+# Operational tools the assistant can recommend. min_role: ANALYST < ADMIN.
+tools:
+  - id: POSTGRES_EXPORT
+    min_role: ANALYST
+    description: Export query results from the operational PostgreSQL database to a CSV or spreadsheet file.
+    tags: [export, csv, spreadsheet, data, query, orders, report]
+  - id: JIRA_TICKET_GEN
+    min_role: ANALYST
+    description: Create a Jira ticket or issue from a short description of a bug, task or follow-up.
+    tags: [ticket, bug, issue, task, follow-up, track]
+  - id: DASHBOARD_SNAPSHOT
+    min_role: ANALYST
+    description: Capture a PDF or image snapshot of a BI dashboard to share charts with leadership.
+    tags: [dashboard, pdf, snapshot, charts, share, kpi, executive]
+  - id: LOG_SEARCH
+    min_role: ANALYST
+    description: Search sanitized application logs for errors, failed logins and incident evidence.
+    tags: [logs, search, errors, grep, failed logins, investigate, "500"]
+  - id: COST_REPORT
+    min_role: ANALYST
+    description: Generate the weekly AI and cloud spend report with token usage by model and team.
+    tags: [cost, spend, budget, tokens, finance, report, claude]
+  - id: ONCALL_PAGE
+    min_role: ANALYST
+    description: Page the on-call engineer and open an incident channel for an outage or escalation.
+    tags: [page, on-call, outage, escalate, incident, down]
+  - id: SECURITY_AUDIT_LOG_FREEZE
+    min_role: ADMIN
+    description: Freeze audit log rotation so records cannot be removed during a security investigation.
+    tags: [audit, freeze, security, investigation, lock, breach]
+  - id: REFUND_DISPATCH
+    min_role: ADMIN
+    description: Issue a customer refund after human-in-the-loop approval, for example after a double charge.
+    tags: [refund, customer, charge, payment, money back]
+  - id: ACCESS_REVIEW
+    min_role: ADMIN
+    description: Start the quarterly access review of roles and permissions for all API clients and users.
+    tags: [access, review, permissions, roles, quarterly]
+  - id: KEY_ROTATION
+    min_role: ADMIN
+    description: Rotate or revoke and reissue an API client key or credential.
+    tags: [key, rotate, credentials, revoke, api key, secret]

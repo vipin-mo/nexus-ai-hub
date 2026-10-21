@@ -1,0 +1,61 @@
+text,label
+do agents need sign-off before they truncate a table,RAG_KNOWLEDGE
+"If an LLM wants to delete rows in prod, what has to happen first?",RAG_KNOWLEDGE
+how many days until chat history gets wiped,RAG_KNOWLEDGE
+Where are we supposed to keep relational customer records?,RAG_KNOWLEDGE
+What's the max time to patch a CVSS 9.8 bug?,RAG_KNOWLEDGE
+Can I deploy on a Friday afternoon?,RAG_KNOWLEDGE
+"We found a leaked key on GitHub, how fast must it be revoked?",RAG_KNOWLEDGE
+How often do API keys have to be changed?,RAG_KNOWLEDGE
+What's the acknowledgement time for a sev1 page?,RAG_KNOWLEDGE
+Are we permitted to send customer emails to Claude?,RAG_KNOWLEDGE
+what does the audit ledger store instead of the query text,RAG_KNOWLEDGE
+What's the monthly external AI budget per team?,RAG_KNOWLEDGE
+Do schema changes in production need a second reviewer?,RAG_KNOWLEDGE
+when is a release rolled back automatically,RAG_KNOWLEDGE
+Which TLS version do database nodes use?,RAG_KNOWLEDGE
+How long are raw application logs kept in the landing zone?,RAG_KNOWLEDGE
+Who is allowed to read the audit trail?,RAG_KNOWLEDGE
+what's the deadline for a blameless review after a sev2,RAG_KNOWLEDGE
+Is the orchestrator websocket port reachable from the internet?,RAG_KNOWLEDGE
+What counts as PII under our privacy rules?,RAG_KNOWLEDGE
+I have to pull a CSV of last month's orders - what do I use?,RECOMMENDATION
+whats good for filing a bug report fast,RECOMMENDATION
+Need something to capture the revenue dashboard as a PDF,RECOMMENDATION
+Which utility helps me grep through sanitized logs?,RECOMMENDATION
+How do I get the weekly Claude spend numbers? Any tool for that?,RECOMMENDATION
+Our site is down - what can I use to wake up whoever is on call?,RECOMMENDATION
+Security wants the audit log locked during the investigation. Which tool?,RECOMMENDATION
+"A customer was double charged, which tool sends the money back?",RECOMMENDATION
+I'm the admin and it's time for the quarterly permissions check. Tool?,RECOMMENDATION
+Suggest something for rotating a client's credentials,RECOMMENDATION
+What would analysts like me typically use for reporting?,RECOMMENDATION
+Is there an internal app to turn a description into a Jira issue?,RECOMMENDATION
+recommend tools for investigating a spike in 500 errors,RECOMMENDATION
+What should I reach for to share charts with the exec team?,RECOMMENDATION
+"Tools for exporting data, which ones do you suggest?",RECOMMENDATION
+which tool do I need to escalate a production incident,RECOMMENDATION
+any app that tracks follow ups from a meeting,RECOMMENDATION
+Point me at the tool for revoking and reissuing an API key,RECOMMENDATION
+What do teammates in my role use most for cost tracking?,RECOMMENDATION
+Recommend something to search logs for failed logins,RECOMMENDATION
+Why might our error rate double right after a deploy even if tests passed?,COMPLEX_REASONING
+Draft a short apology note to customers about yesterday's outage,COMPLEX_REASONING
+"Compare RAG and fine-tuning for a support bot, with pros and cons",COMPLEX_REASONING
+Plan a migration of 2 TB from Mongo to Postgres with minimal downtime,COMPLEX_REASONING
+What's the expected monthly downtime for 99.95% availability? Show the math,COMPLEX_REASONING
+Explain like I'm new: what is reciprocal rank fusion?,COMPLEX_REASONING
+Help me structure a capacity plan for Black Friday traffic,COMPLEX_REASONING
+Turn these bullet points into an executive summary,COMPLEX_REASONING
+"What could cause p99 latency spikes every 15 minutes?",COMPLEX_REASONING
+Write a test plan for an API gateway that does rate limiting,COMPLEX_REASONING
+Give me three hypotheses for why the cache hit rate dropped,COMPLEX_REASONING
+How should we prioritise tech debt against new features this quarter?,COMPLEX_REASONING
+Critique this architecture: one Postgres primary serving 40 microservices,COMPLEX_REASONING
+Brainstorm names for our internal AI assistant,COMPLEX_REASONING
+What are the risks of letting an agent run SQL on its own?,COMPLEX_REASONING
+Estimate how many GPUs we'd need to serve 50 requests per second of an 8B model,COMPLEX_REASONING
+Rewrite this error message so a customer understands it,COMPLEX_REASONING
+Outline a 30-60-90 day plan for a new platform engineer,COMPLEX_REASONING
+Is batch or streaming ETL better for hourly KPI dashboards? Argue both sides,COMPLEX_REASONING
+Summarize the trade-offs of keeping Spark for a 5 GB dataset,COMPLEX_REASONING

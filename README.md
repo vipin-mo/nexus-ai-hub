@@ -1,168 +1,152 @@
-# NexusAI: Omni-Modal Enterprise AI Operations & Personalization Hub
+# NexusAI
 
-NexusAI is a production-grade, multi-language enterprise architecture engineered to orchestrate autonomous workflows, ingest streamed audio configurations, and route contextualized analytical information safely while running entirely with a zero-cost local footprint.
+An internal AI assistant for a fictional company ("Nexus Corp"), built to show how one is operated, not
+just how it is prompted. It covers authentication and an audit trail, prompt-injection defence and PII
+redaction, measured routing and retrieval, an evaluation gate in CI, speech input, and a batch
+analytics pipeline. Everything runs locally for free on Ollama; Claude is optional and capped.
 
----
+**Languages:** Python · Java · C++ · Perl · SQL
+**Stack:** LangGraph, LlamaIndex, ChromaDB, BM25, scikit-learn, spaCy, MLflow 3, Anthropic API, Ollama,
+whisper.cpp, Spring Boot 4, PostgreSQL, MongoDB, PySpark, DuckDB, Streamlit, Docker, Kubernetes, GitHub Actions
 
-## System Architecture Topology
+| Measured result | Value |
+|---|---|
+| Answer fact recall on 32 golden questions: local qwen2.5:3b / Claude Haiku 4.5 | 90.6% / 96.9% |
+| Answers citing the right document: local / Claude | 42.9% / 96.4% |
+| Claude cost for all 32 answers (only complex reasoning uses Claude by default) | $0.039 |
+| Prompt-injection attacks blocked: dev set / held-out set | 97% / 75% (5% false positives on held-out) |
+| Intent routing accuracy (classifier + LLM fallback) | 90.0% |
+| PII redaction recall over 200k log lines (structured / names) | 100% / 94.9% |
+| Speech-to-text (whisper.cpp on Metal) / word error rate | 50 ms per 3.7 s clip / 7.4% |
+| Gateway path without a model call, 32 clients | 342 req/s, p50 86 ms |
+| End-to-end answer latency through the gateway (laptop) | p50 2.0 s |
+
+All numbers, how they were measured and their caveats are in **[BENCHMARKS.md](BENCHMARKS.md)**.
+
+| Ask (through the gateway, with sources) | Pipeline analytics (incidents found by Spark) |
+|---|---|
+| ![Ask](docs/images/dashboard_ask.png) | ![Pipeline](docs/images/dashboard_pipeline.png) |
+| **Live operations (latency, routes, local vs cloud)** | **MLflow traces (PII redacted before export)** |
+| ![Operations](docs/images/dashboard_live_ops.png) | ![Traces](docs/images/mlflow_traces.png) |
+
+More: [evaluation results](docs/images/dashboard_model_quality.png) · [audit ledger](docs/images/dashboard_audit.png)
+
+## Architecture
 
 ```mermaid
-graph TD
-    %% Entry Points
-    UI[Streamlit UI / Dashboard] -->|Bypass / Direct Run| RUN_MONITORED(run_monitored_agent Wrapper)
-    CPP[C++ Audio Ingestion Core] -->|HTTP POST Telemetry| JAVA(Java Spring Boot Gateway)
-    JAVA -->|Async WebSocket Bridge| ORCH(Python LangGraph Orchestrator)
+flowchart LR
+  WAV[WAV files] --> CPP
+  CPP["C++ audio service<br/>WAV decode · VAD · whisper.cpp"] -->|"transcript<br/>key: INGEST_SERVICE"| GW
+  UI[Streamlit dashboard] -->|"question<br/>key: ANALYST / ADMIN"| GW
+  GW["Java gateway · Spring Boot<br/>API keys · RBAC · validation · backpressure"] -->|"RECEIVED / COMPLETED"| PG[("PostgreSQL<br/>append-only audit ledger")]
+  GW -->|"WebSocket + internal token"| G
 
-    %% Orchestrator & State Graph Logic
-    ORCH -->|Node 1| SEC{Security Guardrail Node}
-    SEC -->|Fail: SQL or Prompt Injection| TERM[TERMINATE / Security Block]
-    SEC -->|Pass| ROUTER{Intent Router Node}
+  subgraph ORCH ["Python orchestrator · LangGraph"]
+    G["guard<br/>rules · LLM classifier · PII redaction"] --> R["route<br/>TF-IDF classifier, LLM if unsure"]
+    R --> RET["retrieve<br/>Chroma + BM25 · RRF"]
+    RET -->|RECOMMENDATION| REC["recommend<br/>role-aware CF"]
+    RET --> ANS["answer<br/>local model; Claude only for complex reasoning"]
+    REC --> ANS
+  end
 
-    ROUTER -->|RAG_KNOWLEDGE| RAG(Local RAG Retrieval Node)
-    ROUTER -->|COMPLEX_REASONING| CLAUDE(Claude Executive Brain Node)
-    ROUTER -->|RECOMMENDATION| RECSYS(Collaborative Filtering RecSys Engine)
+  ANS <--> MDB[("MongoDB<br/>session memory · TTL")]
+  ORCH -.-> OLL[["Ollama (host)"]]
+  ANS -.optional.-> CL[["Anthropic API<br/>spend cap"]]
+  ORCH -->|"traces, evals, registry"| MLF[("MLflow")]
+  ORCH -->|"request events"| LAKE
 
-    RAG -->|LlamaIndex + nomic-embed| CHROMA[(ChromaDB Vector Store)]
-    CHROMA --> CLAUDE
-
-    %% State History & Memory
-    CLAUDE <-->|Retrieve/Persist History| MONGO[(MongoDB: Long-Term Memory)]
-
-    %% Telemetry & MLOps Outbound
-    RUN_MONITORED & CLAUDE -->|Fail-Open Tracing| MLFLOW[(MLflow Tracking Server)]
-    RUN_MONITORED & UI -->|Metrics Logging| DUCK[(DuckDB Warehouse)]
-
-    %% Data Engineering Processing
-    RAWLOGS[Raw Application Logs] -->|Perl Regex Sanitization| SANITIZED[Sanitized JSON]
-    SANITIZED --> SPARK(PySpark Batch ETL)
-    SPARK -->|Compute Platform Error Rates| DUCK
-
-    %% UI Monitoring Rendering
-    DUCK -->|Read BI Metrics Plotly| UI
+  LOGS[application logs] --> PERL["Perl<br/>parse · regex PII"] --> SPARK["PySpark<br/>NER · marts · DQ gates"] --> LAKE[("Parquet lake")] --> DUCK[("DuckDB warehouse")] --> UI
 ```
 
----
+| Component | What it does | How it is verified |
+|---|---|---|
+| `core_engines/audio-processor-cpp` | Watches an inbox, decodes WAV (any rate, mono/stereo), detects speech with an energy VAD over zero-copy `std::span` frames, transcribes with whisper.cpp, posts to the gateway with retries | ctest (7 groups), WER script, `--bench` |
+| `core_engines/gateway-service-java` | API-key auth (SHA-256 hashes), roles → permissions, deny by default; audit ledger written before forwarding (fail-closed) and protected by a DB trigger; bounded in-flight requests | 17 tests incl. Testcontainers PostgreSQL |
+| `ai_orchestrator` | LangGraph workflow: guard → route → retrieve → (recommend) → answer. Model tiering keeps lookups on the free local model. PII is redacted before any model, store or trace sees it | 55 offline tests |
+| `evals` | 210 labelled cases across five suites, logged to MLflow (`mlflow.genai.evaluate`), thresholds that fail CI | `make eval`, `make eval-local` |
+| `data_pipeline` | Synthetic logs with known PII → Perl → Spark (NER, Parquet lake, marts, incident detection, data-quality gates) → DuckDB | DQ gates fail the job; PII recall script |
+| `ui_analytics` | Ask (via the gateway), voice upload, live operations, pipeline analytics, eval results, audit ledger, 👍/👎 feedback to MLflow | Streamlit AppTest, screenshots |
+| `local_infra` | Docker Compose (7 services + batch job) and Kubernetes (kustomize, probes, limits, restricted pod security) | deployed and queried on minikube |
 
-## 📋 Prerequisites & System Requirements
+## Run it
 
-Before running the NexusAI stack, ensure your local environment (`macOS` / `Linux`) has the following toolchains installed:
-
-* **Containerization:** Docker Engine, Docker Compose, Minikube, `kubectl`
-* **Programming Languages:** Python 3.10+, Java 17+ (with Maven), C++ Compiler (GCC/Clang), Perl 5+
-* **Local AI Runtimes:** Ollama (must be active on port `11434`). 
-  * *Note:* The infrastructure automation script utilizes `llama3.2:1b`, while internal system settings default to `qwen2.5:1.5b`. Ensure both models are cached locally:
-    ```bash
-    ollama pull llama3.2:1b
-    ollama pull qwen2.5:1.5b
-    ```
-* **Environment:** Python Virtual Environment (`.venv`) configured for Python package matrices.
-
----
-
-## 🚀 Execution & Deployment Strategies
-
-NexusAI supports three distinct deployment targets depending on your testing or production needs.
-
-### Option 1: Native Local Stack (Automated Verification)
-To automate binary compilation, run core validation unit tests, seed analytical tables, and launch your front-end dashboards natively on your host:
+Prerequisites: Docker, Ollama, Python 3.11, Java 17, CMake, Perl. About 10 GB of free RAM.
 
 ```bash
-chmod +x run_local_stack.sh
-./run_local_stack.sh
+make env       # .env with random secrets (or --merge into an existing one)
+make models    # ollama pull qwen2.5:3b nomic-embed-text llama3:8b; whisper base.en
+make setup     # .venv, router training, C++ build
+make up        # Postgres, Mongo, MLflow, orchestrator, gateway, audio service, dashboard
+make demo      # questions, an injection, RBAC checks and the sample WAVs, end to end
 ```
-> **Note:** This script binds background processes to your terminal execution state using a custom Bash `trap`. Press `CTRL+C` to gracefully terminate all child daemons safely.
 
-### Option 2: Docker Compose (Containerized Microservices)
-To run the entire network mesh in completely isolated Docker containers:
+Then open the dashboard at http://localhost:8501, MLflow at http://localhost:5001, and the API at
+http://localhost:8080. `make help` lists everything else: tests, evals, the pipeline, benchmarks and
+Kubernetes.
+
+Claude is optional: put `ANTHROPIC_API_KEY` in `.env`, set `NEXUS_REASONER_PROVIDER=anthropic` and rerun
+`make up`. Only `COMPLEX_REASONING` requests go to Claude, and each process stops calling it after
+`NEXUS_SPEND_CAP_USD` (default $2) and answers locally instead. `make eval` and the tests never call it.
 
 ```bash
-cd local_infra
-docker compose down -v
-docker compose up -d --build
-```
-*To view live multi-service system telemetry:* `docker compose logs -f`
-
-### Option 3: Kubernetes / Minikube (Cloud-Native Emulation)
-To deploy the Gateway and PostgreSQL instances to a local K8s cluster:
-
-```bash
-# Start your local cluster
-minikube start
-
-# Apply Infrastructure Manifests
-kubectl apply -f local_infra/k8s/postgres-pv.yaml
-kubectl apply -f local_infra/k8s/postgres-infra.yaml
-kubectl apply -f local_infra/k8s/gateway-deployment.yaml
-
-# Verify Pod Health
-kubectl get pods
-
-# Expose the Gateway Service to your local machine
-kubectl port-forward svc/gateway-service 8080:8080
+curl -s localhost:8080/api/v1/query -H "Content-Type: application/json" \
+  -H "X-API-Key: $(grep NEXUS_ANALYST_API_KEY .env | cut -d= -f2)" \
+  -d '{"query": "Who has to approve destructive database writes made by an AI agent?"}'
 ```
 
----
+## ML/AI Ops
 
-## 🧪 End-to-End Workflow Testing
+- **Evaluation gate.** Every push runs the offline suites (deterministic: fake LLM, hashing embeddings)
+  and fails if a metric drops below `evals/thresholds.yaml`. `make eval-local` runs the same suites on
+  real local models, with an LLM judge.
+- **Tracing.** Every request is an MLflow trace (graph nodes, retrieval, model calls, token usage).
+  Tracing is fail-open with a 1.5 s health probe, and a span processor redacts PII in every span before
+  export. The authoritative audit record is the Postgres ledger.
+- **Model registry.** The intent router is trained, scored on a hand-written challenge set and
+  registered as `nexus-intent-router`. A new version becomes `@champion` only if it matches or beats the
+  current one on the challenge set; otherwise it is `@challenger`.
+- **Prompt registry.** Prompts are versioned in MLflow under `@production`; the runtime can load them
+  from the registry and fall back to the code version.
+- **Cost control.** Real token counts and cost per request, route and model, plus a per-process spend
+  cap with fallback to the local model.
+- **Feedback.** Dashboard ratings are attached to the request's MLflow trace.
 
-Once the system is online, you can verify the end-to-end flow using the following interfaces:
+## Design decisions
 
-### 1. Streamlit Operations Dashboard (`http://localhost:8501`)
-* **Text Execution:** Enter a query like *"What are our rules about destructive database writes?"* to trigger deterministic security compliance validation.
-* **Security Guardrails:** Enter *"DROP TABLE users"* to verify immediate zero-token `SECURITY_SHIELD` interception.
-* **BI Analytics:** Watch the Right Panel dynamically update Token Expenditures and Intent Class pie charts via DuckDB integrations (`ui_analytics/analytics_warehouse.db`).
+- **A workflow, not an open-ended agent.** The graph's shape is fixed and tested; models decide the
+  route and write the answer. For policy Q&A with access control this is easier to secure and evaluate
+  than a free-running tool loop.
+- **Every request is grounded.** Misrouted policy questions were answered from the model's imagination,
+  so retrieval now runs on every route. The route decides the recommender and the model tier.
+- **Local first.** One ~2 GB model handles every local task. On a 16 GB laptop a second resident model
+  caused Ollama to swap models and made answers 6x slower.
+- **Defence in depth that is measured.** Regex rules generalised poorly (15% on the held-out set), so a
+  classifier backs them up. Access control is enforced in code (recommender filter, an answer check),
+  because the model recommended admin-only tools even when told the caller's role.
+- **Spark where it is not needed.** At 200k lines DuckDB computes the same mart 50x faster. Spark is
+  there to show a job that scales out; the benchmark says so.
 
+## Limitations
 
-### 2. Audio Processing Pipeline (REST to WebSockets Gateway)
-The Java Spring Boot Gateway handles dual modality types. You can test either client text strings or raw edge frames using curl:
-* **Modality A: Standard Corporate Text Payload**
+- The documents, logs, usage events and evaluation sets are synthetic and small.
+- Held-out injection recall is 75%: new phrasings still get through. The guard is one layer, not a
+  guarantee.
+- Groundedness is near the top of its scale with both a local and a Claude judge, so it does not
+  separate configurations well on this dataset; fact recall and citations do.
+- Audio is file-based (an inbox), not live streaming; the speech samples are TTS voices.
+- The Kubernetes setup targets a single-node cluster (ReadWriteOnce volumes, SQLite-backed MLflow).
 
-    ```bash
-    curl -i -X POST http://localhost:8080/api/v1/gateway/dispatch \
-        -H "Content-Type: application/json" \
-        -d '{"query": "Check autonomous tool execution"}'
-    ```
-    * **Expected Output:** An HTTP `200 OK` response returning a serialized JSON contract tracking the `RAG_KNOWLEDGE` or `COMPLEX_REASONING` resolution.
+## Repository layout
 
-* **Modality B: Simulated C++ High-Performance Edge Frame**
-  ```bash
-  curl -i -X POST http://localhost:8080/api/v1/gateway/dispatch \
-    -H "Content-Type: application/json" \
-    -d '{"frame_id": 1042, "amplitude_db": -12.4}'
-  ```
-  * **Expected Output:** The gateway converts this log structure internally into a standardized semantic query string: `"Audio telemetry trigger event. Frame ID: 1042 with Amplitude: -12.4 dB."`. The orchestrator catches this phrase and automatically re-routes it to fetch compliance documents via the `RAG_KNOWLEDGE` workflow node.
+```
+ai_orchestrator/   LangGraph agent, guard, PII, router, retrieval, recommender, memory, server
+evals/             evaluation suites, datasets, thresholds
+core_engines/      C++ audio service, Java gateway
+data_pipeline/     log generator, Perl parser, Spark job, warehouse loader, benchmarks
+ui_analytics/      Streamlit dashboard
+local_infra/       docker-compose.yml, k8s/ (kustomize)
+scripts/           env generator, demo, benchmarks, WER, model download
+docs/images/       screenshots used in this README
+```
 
-
-### 3. PySpark ETL & MLflow Auditing
-* **ETL Job:** Execute `python3 data_pipeline/scripts/etl_spark_job.py` to aggregate raw metrics into the warehouse.
-* **MLflow UI:** Navigate to `http://localhost:5001` to view sub-millisecond execution latency, parameter tracking, and precise token consumption metrics for every query trace.
-
----
-
-## 🔌 Local Endpoint Port Matrix
-
-| Service | Protocol / Target | Native / Local Host | Docker / K8s Port |
-| :--- | :--- | :--- | :--- |
-| **Java Enterprise Gateway** | REST Routing Services | `http://localhost:8080` | `8080` (NodePort: `30080`) |
-| **Python Orchestration Hub** | Async WebSockets Stream | `ws://localhost:8765` | `8765` |
-| **MLflow Registry Tracking** | Experimentation Portal UI | `http://localhost:5001` | `5001` (Maps to internal `5000`) |
-| **Streamlit Operations Plane** | Executive BI Dashboard | `http://localhost:8501` | `8501` |
-| **PostgreSQL Instance** | Relational Ledger Records | `localhost:5432` | `5432` |
-| **MongoDB Cluster Store** | State Trace Persistence | `localhost:27017` | `27017` |
-
----
-
-## 🧠 Microservice Core Competencies
-
-### 1. High-Performance System Engineering (C++ & Java)
-* **Memory Optimization:** Slices incoming audio data stream arrays inside native C++ pointers utilizing isolated frame chunk wrappers to avoid heap allocation overheads.
-* **Enterprise Lifecycle Management:** Leverages Java Spring Boot as a decoupled, multi-threaded transaction router connecting to containerized relational data lakes via asynchronous processing queues.
-
-### 2. Generative AI & Agentic Orchestration (Python & Anthropic)
-* **State Machine Topology:** Built using LangGraph to ensure deterministic execution bounds across AI security passes, local context lookups, and role-based permissions access control.
-* **Budget Maximization:** Intercepts incoming queries using quantized edge models (Ollama) for baseline categorization and security tasks, reserving cloud token consumption exclusively for high-tier reasoning via Anthropic Claude.
-* **Advanced Hybrid RAG:** Uses LlamaIndex to perform offline metadata parsing, semantic vector search, and custom embedding injection via ChromaDB.
-
-### 3. Data Cleansing & Analytical Operations (Perl & PySpark)
-* **Responsible AI Compliance:** Employs an ultra-fast Perl text scanner script to sanitize legacy app text files, automatically tracking down and redacting sensitive PII parameters using regular expressions.
-* **Distributed Analytics:** Coordinates localized single-node PySpark batch processing blocks to evaluate operational token expenditure trends and platform security statistics, persisting calculations inside an optimized-columnar DuckDB storage lake.
+MIT licensed. All company names, people and documents are fictional.

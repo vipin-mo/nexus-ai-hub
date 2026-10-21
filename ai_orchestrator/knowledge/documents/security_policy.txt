@@ -1,4 +1,0 @@
-NEXUSAI GLOBAL CORPORATE SECURITY PROTOCOL
-1. Data Storage: All relational customer metadata must reside within the local secure PostgreSQL container mesh.
-2. AI Orchestration Safety Gates: Any destructive database write or transactional credit execution initiated by an autonomous LLM agent requires a Human-In-The-Loop (HITL) digital signature authorization pass.
-3. Network Access: Database nodes communicate strictly over isolated network bridges using TLS encryption keys.

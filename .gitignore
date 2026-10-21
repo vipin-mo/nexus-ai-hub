@@ -1,13 +1,17 @@
-# Local credentials & system keys
+# Secrets
 .env
+.env.*
+*.env
+!.env.sample
 config/api_keys.json
+
+# Local environments and editors
+.venv*/
+.vscode/
+.idea/
 .DS_Store
 
-# Local environments & IDE layouts
-.venv/
-.vscode/
-
-# Build outputs and compilation fragments
+# Build outputs
 target/
 build/
 core_engines/audio-processor-cpp/build/
@@ -16,13 +20,23 @@ __pycache__/
 *.class
 *.o
 .pytest_cache/
+.ruff_cache/
 
-# Databases, Storage Volumes & Local MLflow Runs
-.chroma/
-local_infra/mlflow/mlruns/*
-!local_infra/mlflow/mlruns/.gitkeep
+# Runtime state and generated artifacts (recreated by `make setup` / the services)
+/data/
+/artifacts/
+/mlruns/
+local_infra/mlflow/
+models/whisper/*.bin
+/reports/
 ui_analytics/analytics_warehouse.db
 
-# Ingestion logs rule: Ignore runtime artifacts but KEEP test seed logs
-data_pipeline/storage/*
-!data_pipeline/storage/raw_application_log.log
+
+# Runtime state from the pre-rework stack (Chroma/Mongo/Postgres files) - never commit
+data_pipeline/storage/
+
+# Kubernetes secrets (generated into a Secret by kustomize)
+local_infra/k8s/secrets.env
+
+# Personal notes and paid-test evidence (kept locally, not published)
+/notes/

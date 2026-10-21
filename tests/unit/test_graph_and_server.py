@@ -108,3 +108,29 @@ def test_websocket_auth_health_and_round_trip(settings_override):
     reply, invalid = asyncio.run(scenario())
     assert reply["status"] == "OK" and reply["answer"]
     assert invalid["status"] == "INVALID_REQUEST"
+
+
+def test_recommendation_answer_cannot_push_tools_above_callers_role(monkeypatch):
+    from ai_orchestrator import graph, llm
+
+    class Leaky(llm.FakeChat):
+        def complete(self, system, user, **kwargs):
+            result = super().complete(system, user, **kwargs)
+            assert 'caller_role="ANALYST"' in user          # the model is told the caller's role
+            result.text = "You should use the REFUND_DISPATCH tool."
+            return result
+
+    monkeypatch.setattr(graph, "get_reasoner", lambda intent=None: Leaky())
+    r = run_agent("Which tool should I use to refund a customer who was double charged?", principal="t",
+                  role="ANALYST")
+    assert r["route"]["intent"] == "RECOMMENDATION"
+    assert "REFUND_DISPATCH (requires ADMIN)" in r["answer"]
+    assert "your role (ANALYST) cannot use REFUND_DISPATCH" in r["answer"]
+    assert "REFUND_DISPATCH" not in {t["id"] for t in r["recommendations"]}
+
+
+def test_policy_answers_mentioning_admin_tools_are_not_altered():
+    from ai_orchestrator.graph import enforce_tool_rbac
+
+    text = "Analysts cannot run REFUND_DISPATCH; it requires ADMIN."
+    assert enforce_tool_rbac(text, "ADMIN", []) == text

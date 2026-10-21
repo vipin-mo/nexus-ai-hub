@@ -122,3 +122,9 @@ def test_pii_never_reaches_memory_or_events(tmp_path):
     assert r["security"]["pii_redacted"] == {"EMAIL": 1}
     events = "".join(p.read_text() for p in get_settings().events_dir.glob("*.jsonl"))
     assert "bob.jones@nexus.com" not in events and "<EMAIL>" in events
+
+
+def test_constant_case_identifiers_are_not_names(redactor):
+    out = redactor.redact("Use REFUND_DISPATCH or SECURITY_AUDIT_LOG_FREEZE, approved by Maria Garcia.")
+    assert "REFUND_DISPATCH" in out.text and "SECURITY_AUDIT_LOG_FREEZE" in out.text
+    assert "Maria Garcia" not in out.text

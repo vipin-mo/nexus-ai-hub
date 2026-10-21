@@ -39,6 +39,7 @@ PATTERNS: list[tuple[str, re.Pattern]] = [
     ("IP_ADDRESS", re.compile(r"(?<![\d.])(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)(?![\d.])")),
 ]
 PLACEHOLDER = re.compile(r"<[A-Z_]+>")
+IDENTIFIER = re.compile(r"\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b")  # CONSTANT_CASE tool/config names, never people
 
 
 CARD_PREFIX = re.compile(r"^(?:4|5[1-5]|2[2-7]|3[47]|6011|65)")  # Visa, Mastercard, Amex, Discover
@@ -101,7 +102,8 @@ class PIIRedactor:
             with self._nlp_lock:
                 doc = self._nlp(text)
             spans = [e for e in doc.ents if e.label_ == "PERSON" and len(e.text) > 2
-                     and not PLACEHOLDER.search(e.text) and e.text.lower() not in self.allow
+                     and not PLACEHOLDER.search(e.text) and not IDENTIFIER.search(e.text)
+                     and e.text.lower() not in self.allow
                      and not any(tok.lower() in self.allow for tok in e.text.split())]
             for ent in reversed(spans):
                 text = text[:ent.start_char] + "<PERSON>" + text[ent.end_char:]

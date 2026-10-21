@@ -1,5 +1,6 @@
 # Secrets
 .env
+.env.*
 *.env
 !.env.sample
 config/api_keys.json
@@ -34,3 +35,6 @@ ui_analytics/analytics_warehouse.db
 
 # Runtime state from the pre-rework stack (Chroma/Mongo/Postgres files) - never commit
 data_pipeline/storage/
+
+# Kubernetes secrets (generated into a Secret by kustomize)
+local_infra/k8s/secrets.env

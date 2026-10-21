@@ -1,19 +1,40 @@
-# Python image for the orchestrator (default command), the dashboard and the batch jobs.
-FROM python:3.11-slim AS base
-
-ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PYTHONPATH=/app MLFLOW_DISABLE_AGENT_HINT=1 MLFLOW_DISABLE_TELEMETRY=true
-WORKDIR /app
-
+# Python images. Targets:
+#   app       orchestrator (default command) and dashboard (command override)
+#   pipeline  adds a JRE (Spark) and full Perl (JSON::PP) for the batch log pipeline
+# --- dependencies: some packages (PyStemmer) need a compiler on linux/arm64; keep it out of runtime
+FROM python:3.11-slim AS deps
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential && rm -rf /var/lib/apt/lists/*
+ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN python -m venv /opt/venv && /opt/venv/bin/pip install -r requirements.txt
+
+FROM python:3.11-slim AS app
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PATH=/opt/venv/bin:$PATH \
+    PYTHONPATH=/app MLFLOW_DISABLE_AGENT_HINT=1 MLFLOW_DISABLE_TELEMETRY=true \
+    NEXUS_DATA_DIR=/data NEXUS_ARTIFACTS_DIR=/app/artifacts
+WORKDIR /app
+COPY --from=deps /opt/venv /opt/venv
 
 COPY config ./config
 COPY ai_orchestrator ./ai_orchestrator
+COPY evals ./evals
+COPY ui_analytics ./ui_analytics
+COPY data_pipeline ./data_pipeline
 # Ship a trained router with the image; the registry copy (NEXUS_ROUTER_MODEL_URI) overrides it.
 RUN python -m ai_orchestrator.training.train_router --output /app/artifacts/intent_router.joblib
 
-RUN useradd --create-home --uid 10001 nexus && mkdir -p /app/data && chown -R nexus /app/data /app/artifacts
+RUN useradd --create-home --uid 10001 nexus && mkdir -p /data && chown -R nexus /data /app/artifacts
 USER nexus
-EXPOSE 8765
+EXPOSE 8765 8501
+HEALTHCHECK --interval=10s --timeout=3s --start-period=60s --retries=6 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8765/healthz', timeout=2)"
 CMD ["python", "-m", "ai_orchestrator.server"]
+
+FROM app AS pipeline
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends openjdk-21-jre-headless perl \
+    && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir pyspark==4.2.0
+USER nexus
+HEALTHCHECK NONE
+CMD ["bash", "data_pipeline/run_pipeline.sh"]

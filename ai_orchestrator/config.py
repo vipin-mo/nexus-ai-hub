@@ -147,7 +147,7 @@ def get_settings() -> Settings:
         server_host=server.get("host", "0.0.0.0"),  # noqa: S104 - container port, not internet-facing
         server_port=int(_env_str("NEXUS_SERVER_PORT", str(server.get("port", 8765)))),
         max_concurrency=int(_env_str("NEXUS_MAX_CONCURRENCY", str(server.get("max_concurrency", 8)))),
-        request_timeout_s=float(server.get("request_timeout_s", 150)),
+        request_timeout_s=float(server.get("request_timeout_s", 120)),
         internal_token=_env_str("NEXUS_INTERNAL_TOKEN", server.get("internal_token", "")),
         security_llm_scan=_env_bool("NEXUS_SECURITY_LLM_SCAN", bool(security.get("llm_scan", True))),
         security_fail_closed=bool(security.get("fail_closed", True)),

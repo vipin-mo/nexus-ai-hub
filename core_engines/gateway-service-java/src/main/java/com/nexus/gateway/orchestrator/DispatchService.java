@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
@@ -72,7 +73,13 @@ public class DispatchService {
         }
 
         long started = System.nanoTime();
-        orchestrator.send(payload).whenComplete((reply, error) -> {
+        CompletableFuture<Map<String, Object>> pending;
+        try {
+            pending = orchestrator.send(payload);
+        } catch (RuntimeException e) {  // never leak the in-flight permit or leave RECEIVED without COMPLETED
+            pending = CompletableFuture.failedFuture(e);
+        }
+        pending.whenComplete((reply, error) -> {
             try {
                 Map<String, Object> body = new LinkedHashMap<>();
                 HttpStatus status;

@@ -1,0 +1,3 @@
+# Batch log pipeline only (needs a Java 17+ runtime)
+-r requirements.txt
+pyspark==4.2.0

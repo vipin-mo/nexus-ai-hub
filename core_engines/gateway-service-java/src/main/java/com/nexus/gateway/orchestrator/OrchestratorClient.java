@@ -40,6 +40,9 @@ public class OrchestratorClient {
         this.client = new StandardWebSocketClient(container);
         this.json = json;
         this.uri = URI.create(properties.orchestrator().wsUri().strip());
+        if (uri.getHost() == null || uri.getPort() <= 0) {  // fail at startup, not on the first request
+            throw new IllegalStateException("Invalid nexus.orchestrator.ws-uri: " + uri);
+        }
         this.internalToken = properties.orchestrator().internalToken();
         this.timeoutMs = properties.orchestrator().timeout().toMillis();
     }
@@ -84,11 +87,15 @@ public class OrchestratorClient {
         if (internalToken != null && !internalToken.isBlank()) {
             headers.add("Authorization", "Bearer " + internalToken);
         }
-        client.execute(handler, headers, uri).whenComplete((session, error) -> {
-            if (error != null) {
-                reply.completeExceptionally(new OrchestratorException("handshake with " + uri + " failed", error));
-            }
-        });
+        try {
+            client.execute(handler, headers, uri).whenComplete((session, error) -> {
+                if (error != null) {
+                    reply.completeExceptionally(new OrchestratorException("handshake with " + uri + " failed", error));
+                }
+            });
+        } catch (RuntimeException e) {  // some failures are thrown synchronously instead of via the future
+            reply.completeExceptionally(new OrchestratorException("could not connect to " + uri, e));
+        }
 
         return reply.orTimeout(timeoutMs, TimeUnit.MILLISECONDS).whenComplete((r, e) -> {
             WebSocketSession session = sessionRef.get();

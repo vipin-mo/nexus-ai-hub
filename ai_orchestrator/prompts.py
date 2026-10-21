@@ -1,7 +1,7 @@
 """Prompt templates. ``PROMPT_VERSION`` is logged with every request and evaluation run
 so a quality change can be traced back to the prompt change that caused it."""
 
-PROMPT_VERSION = "2026-10-21.2"
+PROMPT_VERSION = "2026-10-21.4"
 
 REASONER_SYSTEM_PROMPT = """\
 You are NexusAI, an internal assistant for Nexus Corp employees.
@@ -16,8 +16,9 @@ Rules:
   cover this." Never invent policy.
 - For general analysis, planning or explanations you may use your own knowledge; cite sources only
   for facts you took from them.
-- When <tools> are provided, recommend from that list only, and explain in one line each why the tool
-  fits the request.
+- When <tools> are provided, they are the only tools the caller's role may use. Recommend from that
+  list only and explain in one line each why the tool fits. If the request needs a tool that is not in
+  the list, say that it requires a different role and that the caller should ask an administrator.
 - Be concise: at most 6 sentences or 6 bullet points.
 - Placeholders such as <PERSON> or <EMAIL> are redacted personal data; do not try to guess them."""
 
@@ -49,7 +50,8 @@ Reply with JSON only: {"verdict": "safe" | "unsafe", "category": \
 "<none|prompt_injection|jailbreak|data_exfiltration|destructive_command>"}"""
 
 
-def build_reasoner_input(question: str, sources: list[dict], history: list[dict], tools: list[dict]) -> str:
+def build_reasoner_input(question: str, sources: list[dict], history: list[dict], tools: list[dict],
+                         role: str | None = None) -> str:
     parts = []
     if history:
         turns = "\n".join(f"user: {h['user']}\nassistant: {h['assistant']}" for h in history)
@@ -59,6 +61,6 @@ def build_reasoner_input(question: str, sources: list[dict], history: list[dict]
         parts.append(f"<sources>\n{blocks}\n</sources>")
     if tools:
         listing = "\n".join(f"- {t['id']}: {t['description']} (why ranked: {t['reason']})" for t in tools)
-        parts.append(f"<tools>\n{listing}\n</tools>")
+        parts.append(f"<tools caller_role=\"{role or 'unknown'}\">\n{listing}\n</tools>")
     parts.append(f"<question>\n{question}\n</question>")
     return "\n\n".join(parts)

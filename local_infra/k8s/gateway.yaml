@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Service
+metadata: {name: gateway}
+spec:
+  type: NodePort
+  selector: {app: gateway}
+  ports: [{port: 8080, targetPort: 8080, nodePort: 30080}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: gateway}
+spec:
+  replicas: 1                      # stateless: scale with `kubectl scale deploy/gateway --replicas=N`
+  selector: {matchLabels: {app: gateway}}
+  template:
+    metadata: {labels: {app: gateway}}
+    spec:
+      enableServiceLinks: false   # no docker-links env vars (ORCHESTRATOR_PORT=tcp://...)
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16-alpine
+          command: ["sh", "-c", "until pg_isready -h postgres -p 5432 -U healthcheck; do echo waiting for postgres; sleep 2; done"]
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+      containers:
+        - name: gateway
+          image: nexus/gateway:latest
+          imagePullPolicy: IfNotPresent
+          envFrom: [{secretRef: {name: nexus-secrets}}]
+          env:
+            - {name: DB_HOST, value: postgres}
+            - {name: ORCHESTRATOR_HOST, value: orchestrator}
+          ports: [{containerPort: 8080}]
+          startupProbe: {httpGet: {path: /actuator/health/liveness, port: 8080}, periodSeconds: 5, failureThreshold: 24}
+          readinessProbe: {httpGet: {path: /actuator/health/readiness, port: 8080}, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /actuator/health/liveness, port: 8080}, periodSeconds: 20}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          resources:
+            requests: {cpu: 250m, memory: 384Mi}
+            limits: {cpu: "1", memory: 768Mi}

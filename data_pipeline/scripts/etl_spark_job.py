@@ -42,12 +42,13 @@ def ner_redact_batches(batches):
 
     nlp = spacy.load("en_core_web_sm", disable=["parser", "lemmatizer", "attribute_ruler", "tagger"])
     candidate = re.compile(r"\b[A-Z][a-z]+ [A-Z][a-z]+\b")  # only lines with two capitalised words go to NER
+    identifier = re.compile(r"\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b")  # CONSTANT_CASE names are never people
     for batch in batches:
         messages = batch.column("message").to_pylist()
         idx = [i for i, m in enumerate(messages) if m and candidate.search(m)]
         persons = [0] * len(messages)
         for i, doc in zip(idx, nlp.pipe([messages[i] for i in idx], batch_size=256), strict=True):
-            ents = [e for e in doc.ents if e.label_ == "PERSON"]
+            ents = [e for e in doc.ents if e.label_ == "PERSON" and not identifier.search(e.text)]
             text = messages[i]
             for ent in reversed(ents):
                 text = text[:ent.start_char] + "<PERSON>" + text[ent.end_char:]

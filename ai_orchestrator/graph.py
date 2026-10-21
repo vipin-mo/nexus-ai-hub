@@ -35,7 +35,7 @@ from ai_orchestrator.memory import get_memory, session_key
 from ai_orchestrator.pii import get_redactor
 from ai_orchestrator.prompt_registry import get_prompt
 from ai_orchestrator.prompts import build_reasoner_input
-from ai_orchestrator.recommender import get_recommender
+from ai_orchestrator.recommender import get_recommender, load_catalog, role_allows
 from ai_orchestrator.router import get_router
 from ai_orchestrator.security import get_guard
 from ai_orchestrator.telemetry import get_event_log, init_tracing
@@ -117,7 +117,7 @@ def reason_node(state: AgentState) -> dict:
     key = session_key(state["principal"], state["session_id"])
     history = memory.history(key)
     user_input = build_reasoner_input(state["clean_query"], state.get("sources", []), history,
-                                      state.get("recommendations", []))
+                                      state.get("recommendations", []), state["role"])
     degraded = False
     primary = get_reasoner(state["route"]["intent"])
     system_prompt, prompt_version = get_prompt("nexus-reasoner-system")
@@ -130,12 +130,28 @@ def reason_node(state: AgentState) -> dict:
         log.warning("Primary reasoner failed (%s); answering with local fallback", exc)
         result = fallback.complete(system_prompt, user_input)
         degraded = True
-    # Output filter: models can echo identifiers from documents or history.
+    # Output filters: models can echo identifiers from documents or history, and can suggest tools
+    # from retrieved policy text that the caller's role is not allowed to use.
     answer = get_redactor().redact(result.text).text
+    if state["route"]["intent"] == "RECOMMENDATION":
+        answer = enforce_tool_rbac(answer, state["role"], state.get("recommendations", []))
     memory.append(key, state["clean_query"], answer,
                   {"request_id": state["request_id"], "route": state.get("route", {}).get("intent")})
     return {"answer": answer, "llm": result.to_dict(), "degraded": degraded, "prompt_version": prompt_version,
             "history_turns": len(history), "timings_ms": {"reason": _elapsed(started)}}
+
+
+def enforce_tool_rbac(answer: str, role: str, allowed: list[dict]) -> str:
+    """Flag tools in a recommendation answer that the caller's role may not use (deterministic)."""
+    forbidden = [t for t in load_catalog() if not role_allows(role, t) and t["id"] in answer]
+    if not forbidden:
+        return answer
+    for tool in forbidden:
+        answer = answer.replace(tool["id"], f"{tool['id']} (requires {tool['min_role']})")
+    names = ", ".join(t["id"] for t in forbidden)
+    options = ", ".join(t["id"] for t in allowed) or "none"
+    return (f"{answer}\n\nNote: your role ({role}) cannot use {names}. Ask an administrator to run it. "
+            f"Tools available to you for this request: {options}.")
 
 
 def _dedupe_sources(chunks: list[dict]) -> list[dict]:

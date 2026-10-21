@@ -53,5 +53,5 @@ server:
   host: 0.0.0.0
   port: 8765
   max_concurrency: 8                        # NEXUS_MAX_CONCURRENCY
-  request_timeout_s: 150
+  request_timeout_s: 120                   # < gateway 135 s < C++ client 150 s
   internal_token: ""                        # NEXUS_INTERNAL_TOKEN - shared secret with the Java gateway

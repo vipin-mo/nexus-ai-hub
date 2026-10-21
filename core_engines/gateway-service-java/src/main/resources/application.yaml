@@ -29,7 +29,8 @@ management:
 
 nexus:
   orchestrator:
-    ws-uri: ws://${ORCHESTRATOR_HOST:localhost}:${ORCHESTRATOR_PORT:8765}
+    # NEXUS_ prefix: Kubernetes injects ORCHESTRATOR_PORT=tcp://... for a Service named orchestrator
+    ws-uri: ws://${ORCHESTRATOR_HOST:localhost}:${NEXUS_ORCHESTRATOR_PORT:8765}
     internal-token: ${NEXUS_INTERNAL_TOKEN:}
     timeout: 135s                 # longer than the orchestrator's own 120 s deadline
   max-inflight: ${NEXUS_GATEWAY_MAX_INFLIGHT:32}

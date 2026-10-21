@@ -1,25 +1,19 @@
-FROM python:3.10-slim
+# Python image for the orchestrator (default command), the dashboard and the batch jobs.
+FROM python:3.11-slim AS base
 
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONPATH=/app MLFLOW_DISABLE_AGENT_HINT=1
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    curl \
-    libsqlite3-dev \
-    && rm -rf /var/lib/apt/lists/*
-
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
-# Pre-download DistilBERT weights into container cache path
-ENV HF_HOME=/app/.cache
-RUN python3 -c "from transformers import AutoTokenizer, AutoModelForSequenceClassification; AutoTokenizer.from_pretrained('distilbert-base-uncased'); AutoModelForSequenceClassification.from_pretrained('distilbert-base-uncased')"
+COPY config ./config
+COPY ai_orchestrator ./ai_orchestrator
+# Ship a trained router with the image; the registry copy (NEXUS_ROUTER_MODEL_URI) overrides it.
+RUN python -m ai_orchestrator.training.train_router --output /app/artifacts/intent_router.joblib
 
-COPY . .
-
-# Structural environment flags to ensure safe application context execution paths
-ENV PYTHONPATH=/app
-ENV PYTHONUNBUFFERED=1
+RUN useradd --create-home --uid 10001 nexus && mkdir -p /app/data && chown -R nexus /app/data /app/artifacts
+USER nexus
 EXPOSE 8765
-
-CMD ["python3", "ai_orchestrator/agents/streaming_server.py"]
+CMD ["python", "-m", "ai_orchestrator.server"]

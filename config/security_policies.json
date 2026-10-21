@@ -1,12 +1,12 @@
 {
-  "security_policy_version": "1.0.0",
+  "security_policy_version": "1.1.0",
+  "runtime": {
+    "llm_scan": true,
+    "fail_closed": true
+  },
   "banned_keywords": [
     "DROP TABLE",
     "DELETE FROM users",
     "IGNORE PREVIOUS INSTRUCTIONS"
-  ],
-  "role_permissions": {
-    "nexus_admin": ["READ", "WRITE", "EXECUTE"],
-    "nexus_agent": ["READ"]
-  }
+  ]
 }

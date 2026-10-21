@@ -58,29 +58,18 @@ jobs:
           python-version: '3.10'
           cache: 'pip'
 
-      - name: Install Core AI Package Matrix
+      - name: Install dependencies
         run: |
           pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install -r requirements.txt -r requirements-dev.txt
 
-      - name: Run Syntax and Code Quality Lint Checks
-        run: |
-          python -m py_compile ai_orchestrator/agents/graph.py
-          python -m py_compile ai_orchestrator/knowledge/rag_pipeline.py
-          python -m py_compile ai_orchestrator/models/recsys_engine.py
+      - name: Lint
+        run: ruff check ai_orchestrator tests
 
-      - name: Run Comprehensive System Testing Matrix
+      - name: Unit tests (offline - fake LLM, hashing embeddings)
         env:
-          OLLAMA_BASE_URL: "mock://localhost"
-        run: |
-          python -m unittest tests/unit/test_nexus_system_wide.py
-
-      - name: Run Prompt Regression Guardrails Matrix
-        env:
-          MLFLOW_TRACKING_URI: "file:./mlruns"
-          OLLAMA_BASE_URL: "mock://localhost"
-        run: |
-          python tests/unit/ai_eval_suite.py
+          MLFLOW_DISABLE_AGENT_HINT: "1"
+        run: python -m pytest
 
   # JOB 4: Automated Docker Container Mesh Build Verification
   container-build-mesh:

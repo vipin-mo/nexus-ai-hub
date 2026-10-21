@@ -1,0 +1,636 @@
+text,label
+What are the implications of an email to customers about planned downtime?,COMPLEX_REASONING
+What are the compliance requirements for leaked secrets?,RAG_KNOWLEDGE
+Quote the policy section covering deployment windows.,RAG_KNOWLEDGE
+Compare options for why p95 latency could rise while p50 stays flat.,COMPLEX_REASONING
+Are we allowed to skip destructive database writes?,RAG_KNOWLEDGE
+brainstorm ideas about how to prioritise a backlog of 40 bugs,COMPLEX_REASONING
+Give me tool recommendations so I can export query results to a spreadsheet.,RECOMMENDATION
+Can you draft a project plan for rolling out the assistant to two new teams?,COMPLEX_REASONING
+Explain the trade-offs between batch and streaming ETL.,COMPLEX_REASONING
+is there a tool to share KPI charts with leadership,RECOMMENDATION
+What are the rules for data subject deletion requests?,RAG_KNOWLEDGE
+remind me what the rule is for human-in-the-loop approvals,RAG_KNOWLEDGE
+Where is vendor reviews documented?,RAG_KNOWLEDGE
+Evaluate the latency regression after Tuesday's release and recommend next steps.,COMPLEX_REASONING
+point me to the right tool to get cost numbers for the finance review,RECOMMENDATION
+Summarize the internal standard for data subject deletion requests.,RAG_KNOWLEDGE
+Summarize the internal standard for customer data storage.,RAG_KNOWLEDGE
+What does governance say about the AI budget?,RAG_KNOWLEDGE
+Give me your reasoning on an email to customers about planned downtime.,COMPLEX_REASONING
+What tool can help me export query results to a spreadsheet?,RECOMMENDATION
+What are the compliance requirements for customer data storage?,RAG_KNOWLEDGE
+Is there a requirement around data subject deletion requests?,RAG_KNOWLEDGE
+I need to rotate an API key - what should I use?,RECOMMENDATION
+I'd like a detailed analysis of how vector search differs from keyword search.,COMPLEX_REASONING
+Walk me through a project plan for rolling out the assistant to two new teams.,COMPLEX_REASONING
+Break down a comparison of three caching strategies for me.,COMPLEX_REASONING
+Compare options for an email to customers about planned downtime.,COMPLEX_REASONING
+What timeline applies to PII redaction?,RAG_KNOWLEDGE
+I need to search the application logs for errors - what should I use?,RECOMMENDATION
+What would you recommend for me to snapshot a dashboard for a meeting?,RECOMMENDATION
+Who needs to approve critical vulnerability patching?,RAG_KNOWLEDGE
+point me to the right tool to share KPI charts with leadership,RECOMMENDATION
+"according to company policy, how should TLS for database connections be handled",RAG_KNOWLEDGE
+Any tool suggestions to search the application logs for errors?,RECOMMENDATION
+what's the official procedure for deployment windows,RAG_KNOWLEDGE
+Give me your reasoning on a migration from MongoDB to PostgreSQL.,COMPLEX_REASONING
+Give me tool recommendations so I can page the on-call engineer.,RECOMMENDATION
+Who needs to approve deployment windows?,RAG_KNOWLEDGE
+What tool can help me snapshot a dashboard for a meeting?,RECOMMENDATION
+brainstorm ideas about the math behind a 99.9% availability target,COMPLEX_REASONING
+Recommend a tool to find failed logins in the logs.,RECOMMENDATION
+what's the official procedure for the analyst role,RAG_KNOWLEDGE
+I need to freeze the audit log during an investigation - what should I use?,RECOMMENDATION
+Help me think through our Q3 incident trends.,COMPLEX_REASONING
+What tools do people in my role use to page the on-call engineer?,RECOMMENDATION
+What tools do people in my role use to issue a refund to a customer?,RECOMMENDATION
+Evaluate how to prioritise a backlog of 40 bugs and recommend next steps.,COMPLEX_REASONING
+"per our runbook, what happens with destructive database writes?",RAG_KNOWLEDGE
+What are the implications of the pros and cons of fine-tuning versus RAG?,COMPLEX_REASONING
+Suggest the best tool for when I need to rotate an API key.,RECOMMENDATION
+Analyze how to estimate capacity for 10x traffic.,COMPLEX_REASONING
+What would you recommend for me to share KPI charts with leadership?,RECOMMENDATION
+I need to share KPI charts with leadership - what should I use?,RECOMMENDATION
+Can you draft an email to customers about planned downtime?,COMPLEX_REASONING
+What tool can help me share KPI charts with leadership?,RECOMMENDATION
+brainstorm ideas about our Q3 incident trends,COMPLEX_REASONING
+I need to export query results to a spreadsheet - what should I use?,RECOMMENDATION
+Analyze a summary of this error message for a non-technical manager.,COMPLEX_REASONING
+Recommend a tool to freeze the audit log during an investigation.,RECOMMENDATION
+Which tool should I use to issue a refund to a customer?,RECOMMENDATION
+"per our runbook, what happens with audit log retention?",RAG_KNOWLEDGE
+Recommend a tool to issue a refund to a customer.,RECOMMENDATION
+Are we allowed to skip database migrations?,RAG_KNOWLEDGE
+Outline the latency regression after Tuesday's release.,COMPLEX_REASONING
+Break down the trade-offs between batch and streaming ETL for me.,COMPLEX_REASONING
+point me to the right tool to issue a refund to a customer,RECOMMENDATION
+what's the official procedure for prompt injection handling,RAG_KNOWLEDGE
+Can you look up the guideline for database migrations?,RAG_KNOWLEDGE
+Outline a short status update for leadership.,COMPLEX_REASONING
+Summarize the internal standard for raw log retention.,RAG_KNOWLEDGE
+Walk me through our Q3 incident trends.,COMPLEX_REASONING
+what's the official procedure for database migrations,RAG_KNOWLEDGE
+Explain risks in our current on-call rotation.,COMPLEX_REASONING
+What does the handbook say about SEV2 incidents?,RAG_KNOWLEDGE
+Outline our Q3 incident trends.,COMPLEX_REASONING
+Recommend a tool to open a ticket for a bug.,RECOMMENDATION
+what's the official procedure for leaked secrets,RAG_KNOWLEDGE
+Which tool should I use to escalate an outage?,RECOMMENDATION
+Which tool should I use to snapshot a dashboard for a meeting?,RECOMMENDATION
+Is there a requirement around the ingest service role?,RAG_KNOWLEDGE
+is there a tool to find failed logins in the logs,RECOMMENDATION
+I need to snapshot a dashboard for a meeting - what should I use?,RECOMMENDATION
+Are we allowed to skip human-in-the-loop approvals?,RAG_KNOWLEDGE
+brainstorm ideas about an email to customers about planned downtime,COMPLEX_REASONING
+what's the quickest tool to start an access review,RECOMMENDATION
+Who needs to approve PII redaction?,RAG_KNOWLEDGE
+Explain the math behind a 99.9% availability target.,COMPLEX_REASONING
+is there a tool to export query results to a spreadsheet,RECOMMENDATION
+Analyze how vector search differs from keyword search.,COMPLEX_REASONING
+what's the official procedure for the AI budget,RAG_KNOWLEDGE
+is there a tool to issue a refund to a customer,RECOMMENDATION
+Can you look up the guideline for destructive database writes?,RAG_KNOWLEDGE
+Which tool should I use to page the on-call engineer?,RECOMMENDATION
+Can you look up the guideline for post-incident reviews?,RAG_KNOWLEDGE
+I need to escalate an outage - what should I use?,RECOMMENDATION
+Any tool suggestions to open a ticket for a bug?,RECOMMENDATION
+How long do we keep data for SEV1 incidents?,RAG_KNOWLEDGE
+brainstorm ideas about a comparison of three caching strategies,COMPLEX_REASONING
+Suggest the best tool for when I need to get cost numbers for the finance review.,RECOMMENDATION
+What are the rules for the ingest service role?,RAG_KNOWLEDGE
+Break down how to estimate capacity for 10x traffic for me.,COMPLEX_REASONING
+What are the compliance requirements for API key rotation?,RAG_KNOWLEDGE
+What are the rules for post-incident reviews?,RAG_KNOWLEDGE
+think step by step about the root cause hypotheses for intermittent timeouts,COMPLEX_REASONING
+brainstorm ideas about how to estimate capacity for 10x traffic,COMPLEX_REASONING
+What timeline applies to destructive database writes?,RAG_KNOWLEDGE
+point me to the right tool to track a follow-up task,RECOMMENDATION
+Where is the AI budget documented?,RAG_KNOWLEDGE
+Break down an email to customers about planned downtime for me.,COMPLEX_REASONING
+Write a project plan for rolling out the assistant to two new teams.,COMPLEX_REASONING
+I need to get cost numbers for the finance review - what should I use?,RECOMMENDATION
+brainstorm ideas about why p95 latency could rise while p50 stays flat,COMPLEX_REASONING
+what's the official procedure for post-incident reviews,RAG_KNOWLEDGE
+Which of our internal tools lets me report on this week's AI spend?,RECOMMENDATION
+I'd like a detailed analysis of how to prioritise a backlog of 40 bugs.,COMPLEX_REASONING
+What tools do people in my role use to report on this week's AI spend?,RECOMMENDATION
+Recommend a tool to rotate an API key.,RECOMMENDATION
+Can you draft a three-step plan to reduce API costs?,COMPLEX_REASONING
+Who needs to approve rollback criteria?,RAG_KNOWLEDGE
+Outline a project plan for rolling out the assistant to two new teams.,COMPLEX_REASONING
+Any tool suggestions to find failed logins in the logs?,RECOMMENDATION
+Any tool suggestions to report on this week's AI spend?,RECOMMENDATION
+What tools do people in my role use to share KPI charts with leadership?,RECOMMENDATION
+I'd like a detailed analysis of the trade-offs between batch and streaming ETL.,COMPLEX_REASONING
+Can you look up the guideline for the ingest service role?,RAG_KNOWLEDGE
+"according to company policy, how should conversation memory retention be handled",RAG_KNOWLEDGE
+Is there a requirement around SEV1 incidents?,RAG_KNOWLEDGE
+What timeline applies to post-incident reviews?,RAG_KNOWLEDGE
+"per our runbook, what happens with TLS for database connections?",RAG_KNOWLEDGE
+Which of our internal tools lets me issue a refund to a customer?,RECOMMENDATION
+Compare options for a comparison of three caching strategies.,COMPLEX_REASONING
+Any tool suggestions to escalate an outage?,RECOMMENDATION
+Compare options for the latency regression after Tuesday's release.,COMPLEX_REASONING
+"according to company policy, how should database migrations be handled",RAG_KNOWLEDGE
+Outline the pros and cons of fine-tuning versus RAG.,COMPLEX_REASONING
+Explain a summary of this error message for a non-technical manager.,COMPLEX_REASONING
+brainstorm ideas about a project plan for rolling out the assistant to two new teams,COMPLEX_REASONING
+Evaluate our Q3 incident trends and recommend next steps.,COMPLEX_REASONING
+"per our runbook, what happens with rollback criteria?",RAG_KNOWLEDGE
+is there a tool to freeze the audit log during an investigation,RECOMMENDATION
+What does the handbook say about audit log retention?,RAG_KNOWLEDGE
+Compare options for a summary of this error message for a non-technical manager.,COMPLEX_REASONING
+what's the official procedure for data subject deletion requests,RAG_KNOWLEDGE
+Explain a testing strategy for the new gateway.,COMPLEX_REASONING
+Walk me through why p95 latency could rise while p50 stays flat.,COMPLEX_REASONING
+Help me think through a testing strategy for the new gateway.,COMPLEX_REASONING
+Compare options for a project plan for rolling out the assistant to two new teams.,COMPLEX_REASONING
+Break down how vector search differs from keyword search for me.,COMPLEX_REASONING
+Any tool suggestions to share KPI charts with leadership?,RECOMMENDATION
+What are the implications of a testing strategy for the new gateway?,COMPLEX_REASONING
+Help me think through a comparison of three caching strategies.,COMPLEX_REASONING
+Walk me through the latency regression after Tuesday's release.,COMPLEX_REASONING
+How long do we keep data for post-incident reviews?,RAG_KNOWLEDGE
+What would you recommend for me to get cost numbers for the finance review?,RECOMMENDATION
+remind me what the rule is for leaked secrets,RAG_KNOWLEDGE
+Can you draft a testing strategy for the new gateway?,COMPLEX_REASONING
+point me to the right tool to search the application logs for errors,RECOMMENDATION
+Are we allowed to skip conversation memory retention?,RAG_KNOWLEDGE
+is there a tool to search the application logs for errors,RECOMMENDATION
+Any tool suggestions to issue a refund to a customer?,RECOMMENDATION
+Walk me through how vector search differs from keyword search.,COMPLEX_REASONING
+Evaluate risks in our current on-call rotation and recommend next steps.,COMPLEX_REASONING
+Is there a requirement around the analyst role?,RAG_KNOWLEDGE
+think step by step about a comparison of three caching strategies,COMPLEX_REASONING
+I'd like a detailed analysis of a summary of this error message for a non-technical manager.,COMPLEX_REASONING
+What are the implications of a three-step plan to reduce API costs?,COMPLEX_REASONING
+remind me what the rule is for vendor reviews,RAG_KNOWLEDGE
+What are the rules for vendor reviews?,RAG_KNOWLEDGE
+Give me tool recommendations so I can search the application logs for errors.,RECOMMENDATION
+remind me what the rule is for the ingest service role,RAG_KNOWLEDGE
+is there a tool to escalate an outage,RECOMMENDATION
+How long do we keep data for refund approvals?,RAG_KNOWLEDGE
+Which of our internal tools lets me get cost numbers for the finance review?,RECOMMENDATION
+What tool can help me rotate an API key?,RECOMMENDATION
+Write risks in our current on-call rotation.,COMPLEX_REASONING
+What tool can help me find failed logins in the logs?,RECOMMENDATION
+Analyze a three-step plan to reduce API costs.,COMPLEX_REASONING
+I'd like a detailed analysis of the latency regression after Tuesday's release.,COMPLEX_REASONING
+Give me tool recommendations so I can rotate an API key.,RECOMMENDATION
+Are we allowed to skip PII redaction?,RAG_KNOWLEDGE
+I'd like a detailed analysis of a project plan for rolling out the assistant to two new teams.,COMPLEX_REASONING
+Break down a migration from MongoDB to PostgreSQL for me.,COMPLEX_REASONING
+Outline an email to customers about planned downtime.,COMPLEX_REASONING
+point me to the right tool to start an access review,RECOMMENDATION
+Evaluate a project plan for rolling out the assistant to two new teams and recommend next steps.,COMPLEX_REASONING
+What are the rules for leaked secrets?,RAG_KNOWLEDGE
+What does the handbook say about admin access reviews?,RAG_KNOWLEDGE
+is there a tool to track a follow-up task,RECOMMENDATION
+Compare options for a testing strategy for the new gateway.,COMPLEX_REASONING
+point me to the right tool to escalate an outage,RECOMMENDATION
+"according to company policy, how should admin access reviews be handled",RAG_KNOWLEDGE
+Evaluate a three-step plan to reduce API costs and recommend next steps.,COMPLEX_REASONING
+What does the handbook say about the AI budget?,RAG_KNOWLEDGE
+What tool can help me report on this week's AI spend?,RECOMMENDATION
+Quote the policy section covering API key rotation.,RAG_KNOWLEDGE
+What are the implications of the trade-offs between batch and streaming ETL?,COMPLEX_REASONING
+What are the implications of how vector search differs from keyword search?,COMPLEX_REASONING
+think step by step about a migration from MongoDB to PostgreSQL,COMPLEX_REASONING
+Suggest the best tool for when I need to snapshot a dashboard for a meeting.,RECOMMENDATION
+What does the handbook say about the ingest service role?,RAG_KNOWLEDGE
+What is our policy on the analyst role?,RAG_KNOWLEDGE
+point me to the right tool to rotate an API key,RECOMMENDATION
+Quote the policy section covering database migrations.,RAG_KNOWLEDGE
+What tools do people in my role use to snapshot a dashboard for a meeting?,RECOMMENDATION
+Analyze a comparison of three caching strategies.,COMPLEX_REASONING
+Analyze the latency regression after Tuesday's release.,COMPLEX_REASONING
+I need to open a ticket for a bug - what should I use?,RECOMMENDATION
+What does governance say about API key rotation?,RAG_KNOWLEDGE
+Compare options for a three-step plan to reduce API costs.,COMPLEX_REASONING
+Which of our internal tools lets me open a ticket for a bug?,RECOMMENDATION
+Where is database migrations documented?,RAG_KNOWLEDGE
+Summarize the internal standard for the AI budget.,RAG_KNOWLEDGE
+What tools do people in my role use to freeze the audit log during an investigation?,RECOMMENDATION
+Which tool should I use to rotate an API key?,RECOMMENDATION
+What does governance say about PII redaction?,RAG_KNOWLEDGE
+Can you draft a short status update for leadership?,COMPLEX_REASONING
+What are the rules for SEV1 incidents?,RAG_KNOWLEDGE
+think step by step about a testing strategy for the new gateway,COMPLEX_REASONING
+What are the compliance requirements for data subject deletion requests?,RAG_KNOWLEDGE
+Evaluate the root cause hypotheses for intermittent timeouts and recommend next steps.,COMPLEX_REASONING
+Who needs to approve audit log retention?,RAG_KNOWLEDGE
+What tool can help me escalate an outage?,RECOMMENDATION
+Outline risks in our current on-call rotation.,COMPLEX_REASONING
+point me to the right tool to page the on-call engineer,RECOMMENDATION
+"per our runbook, what happens with deployment windows?",RAG_KNOWLEDGE
+Help me think through the latency regression after Tuesday's release.,COMPLEX_REASONING
+Walk me through the trade-offs between batch and streaming ETL.,COMPLEX_REASONING
+Help me think through a summary of this error message for a non-technical manager.,COMPLEX_REASONING
+Can you look up the guideline for raw log retention?,RAG_KNOWLEDGE
+What timeline applies to the ingest service role?,RAG_KNOWLEDGE
+Who needs to approve database migrations?,RAG_KNOWLEDGE
+Is there a requirement around leaked secrets?,RAG_KNOWLEDGE
+what's the official procedure for vendor reviews,RAG_KNOWLEDGE
+I'd like a detailed analysis of risks in our current on-call rotation.,COMPLEX_REASONING
+Summarize the internal standard for leaked secrets.,RAG_KNOWLEDGE
+What tools do people in my role use to rotate an API key?,RECOMMENDATION
+How long do we keep data for admin access reviews?,RAG_KNOWLEDGE
+What is our policy on customer data storage?,RAG_KNOWLEDGE
+brainstorm ideas about a summary of this error message for a non-technical manager,COMPLEX_REASONING
+What are the compliance requirements for SEV2 incidents?,RAG_KNOWLEDGE
+Are we allowed to skip cloud model usage?,RAG_KNOWLEDGE
+Walk me through a short status update for leadership.,COMPLEX_REASONING
+Analyze a testing strategy for the new gateway.,COMPLEX_REASONING
+Explain our Q3 incident trends.,COMPLEX_REASONING
+"per our runbook, what happens with the AI budget?",RAG_KNOWLEDGE
+Analyze why p95 latency could rise while p50 stays flat.,COMPLEX_REASONING
+Write how to prioritise a backlog of 40 bugs.,COMPLEX_REASONING
+Suggest the best tool for when I need to freeze the audit log during an investigation.,RECOMMENDATION
+brainstorm ideas about the root cause hypotheses for intermittent timeouts,COMPLEX_REASONING
+Give me your reasoning on a short status update for leadership.,COMPLEX_REASONING
+What are the implications of our Q3 incident trends?,COMPLEX_REASONING
+point me to the right tool to export query results to a spreadsheet,RECOMMENDATION
+What are the implications of the latency regression after Tuesday's release?,COMPLEX_REASONING
+Which of our internal tools lets me track a follow-up task?,RECOMMENDATION
+What does governance say about human-in-the-loop approvals?,RAG_KNOWLEDGE
+Explain a migration from MongoDB to PostgreSQL.,COMPLEX_REASONING
+Who needs to approve cloud model usage?,RAG_KNOWLEDGE
+Summarize the internal standard for deployment windows.,RAG_KNOWLEDGE
+Recommend a tool to page the on-call engineer.,RECOMMENDATION
+Write a short status update for leadership.,COMPLEX_REASONING
+What tool can help me page the on-call engineer?,RECOMMENDATION
+Help me think through a short status update for leadership.,COMPLEX_REASONING
+Outline a comparison of three caching strategies.,COMPLEX_REASONING
+what's the official procedure for critical vulnerability patching,RAG_KNOWLEDGE
+Break down how to prioritise a backlog of 40 bugs for me.,COMPLEX_REASONING
+Walk me through a summary of this error message for a non-technical manager.,COMPLEX_REASONING
+Explain how to estimate capacity for 10x traffic.,COMPLEX_REASONING
+"according to company policy, how should vendor reviews be handled",RAG_KNOWLEDGE
+What are the compliance requirements for deployment windows?,RAG_KNOWLEDGE
+Any tool suggestions to track a follow-up task?,RECOMMENDATION
+what's the quickest tool to get cost numbers for the finance review,RECOMMENDATION
+think step by step about the trade-offs between batch and streaming ETL,COMPLEX_REASONING
+Where is admin access reviews documented?,RAG_KNOWLEDGE
+Suggest the best tool for when I need to page the on-call engineer.,RECOMMENDATION
+point me to the right tool to snapshot a dashboard for a meeting,RECOMMENDATION
+Where is post-incident reviews documented?,RAG_KNOWLEDGE
+Write the pros and cons of fine-tuning versus RAG.,COMPLEX_REASONING
+Compare options for the math behind a 99.9% availability target.,COMPLEX_REASONING
+What would you recommend for me to escalate an outage?,RECOMMENDATION
+What tools do people in my role use to find failed logins in the logs?,RECOMMENDATION
+Explain the pros and cons of fine-tuning versus RAG.,COMPLEX_REASONING
+Write the root cause hypotheses for intermittent timeouts.,COMPLEX_REASONING
+What does governance say about SEV2 incidents?,RAG_KNOWLEDGE
+"according to company policy, how should PII redaction be handled",RAG_KNOWLEDGE
+"according to company policy, how should the ingest service role be handled",RAG_KNOWLEDGE
+Give me tool recommendations so I can get cost numbers for the finance review.,RECOMMENDATION
+Write a migration from MongoDB to PostgreSQL.,COMPLEX_REASONING
+Who needs to approve API key rotation?,RAG_KNOWLEDGE
+Give me tool recommendations so I can track a follow-up task.,RECOMMENDATION
+Recommend a tool to escalate an outage.,RECOMMENDATION
+Explain why p95 latency could rise while p50 stays flat.,COMPLEX_REASONING
+Break down the latency regression after Tuesday's release for me.,COMPLEX_REASONING
+What are the rules for deployment windows?,RAG_KNOWLEDGE
+What are the compliance requirements for human-in-the-loop approvals?,RAG_KNOWLEDGE
+Write a summary of this error message for a non-technical manager.,COMPLEX_REASONING
+brainstorm ideas about risks in our current on-call rotation,COMPLEX_REASONING
+What tool can help me issue a refund to a customer?,RECOMMENDATION
+Give me tool recommendations so I can report on this week's AI spend.,RECOMMENDATION
+I'd like a detailed analysis of a comparison of three caching strategies.,COMPLEX_REASONING
+Give me your reasoning on the root cause hypotheses for intermittent timeouts.,COMPLEX_REASONING
+What does the handbook say about the analyst role?,RAG_KNOWLEDGE
+Is there a requirement around deployment windows?,RAG_KNOWLEDGE
+Can you draft the math behind a 99.9% availability target?,COMPLEX_REASONING
+I need to issue a refund to a customer - what should I use?,RECOMMENDATION
+Any tool suggestions to snapshot a dashboard for a meeting?,RECOMMENDATION
+Any tool suggestions to start an access review?,RECOMMENDATION
+"per our runbook, what happens with vendor reviews?",RAG_KNOWLEDGE
+think step by step about a project plan for rolling out the assistant to two new teams,COMPLEX_REASONING
+"per our runbook, what happens with admin access reviews?",RAG_KNOWLEDGE
+Summarize the internal standard for the ingest service role.,RAG_KNOWLEDGE
+remind me what the rule is for data subject deletion requests,RAG_KNOWLEDGE
+Can you draft how vector search differs from keyword search?,COMPLEX_REASONING
+Write why p95 latency could rise while p50 stays flat.,COMPLEX_REASONING
+"per our runbook, what happens with critical vulnerability patching?",RAG_KNOWLEDGE
+think step by step about a summary of this error message for a non-technical manager,COMPLEX_REASONING
+is there a tool to open a ticket for a bug,RECOMMENDATION
+Summarize the internal standard for rollback criteria.,RAG_KNOWLEDGE
+Compare options for risks in our current on-call rotation.,COMPLEX_REASONING
+Are we allowed to skip the AI budget?,RAG_KNOWLEDGE
+Explain a comparison of three caching strategies.,COMPLEX_REASONING
+Suggest the best tool for when I need to search the application logs for errors.,RECOMMENDATION
+Are we allowed to skip SEV2 incidents?,RAG_KNOWLEDGE
+"per our runbook, what happens with refund approvals?",RAG_KNOWLEDGE
+Help me think through a migration from MongoDB to PostgreSQL.,COMPLEX_REASONING
+"according to company policy, how should the AI budget be handled",RAG_KNOWLEDGE
+Which tool should I use to report on this week's AI spend?,RECOMMENDATION
+"per our runbook, what happens with raw log retention?",RAG_KNOWLEDGE
+Which tool should I use to start an access review?,RECOMMENDATION
+Walk me through risks in our current on-call rotation.,COMPLEX_REASONING
+Outline why p95 latency could rise while p50 stays flat.,COMPLEX_REASONING
+I'd like a detailed analysis of our Q3 incident trends.,COMPLEX_REASONING
+What are the implications of a project plan for rolling out the assistant to two new teams?,COMPLEX_REASONING
+Suggest the best tool for when I need to start an access review.,RECOMMENDATION
+point me to the right tool to open a ticket for a bug,RECOMMENDATION
+I'd like a detailed analysis of the root cause hypotheses for intermittent timeouts.,COMPLEX_REASONING
+Where is data subject deletion requests documented?,RAG_KNOWLEDGE
+Give me your reasoning on a comparison of three caching strategies.,COMPLEX_REASONING
+Is there a requirement around TLS for database connections?,RAG_KNOWLEDGE
+Where is refund approvals documented?,RAG_KNOWLEDGE
+What tool can help me freeze the audit log during an investigation?,RECOMMENDATION
+remind me what the rule is for admin access reviews,RAG_KNOWLEDGE
+Analyze the trade-offs between batch and streaming ETL.,COMPLEX_REASONING
+"according to company policy, how should post-incident reviews be handled",RAG_KNOWLEDGE
+I need to report on this week's AI spend - what should I use?,RECOMMENDATION
+What is our policy on human-in-the-loop approvals?,RAG_KNOWLEDGE
+What tool can help me start an access review?,RECOMMENDATION
+what's the quickest tool to export query results to a spreadsheet,RECOMMENDATION
+Give me tool recommendations so I can issue a refund to a customer.,RECOMMENDATION
+Suggest the best tool for when I need to track a follow-up task.,RECOMMENDATION
+Recommend a tool to start an access review.,RECOMMENDATION
+remind me what the rule is for database migrations,RAG_KNOWLEDGE
+Help me think through the pros and cons of fine-tuning versus RAG.,COMPLEX_REASONING
+Is there a requirement around SEV2 incidents?,RAG_KNOWLEDGE
+What does the handbook say about PII redaction?,RAG_KNOWLEDGE
+Help me think through the trade-offs between batch and streaming ETL.,COMPLEX_REASONING
+Quote the policy section covering audit log retention.,RAG_KNOWLEDGE
+Analyze an email to customers about planned downtime.,COMPLEX_REASONING
+what's the official procedure for TLS for database connections,RAG_KNOWLEDGE
+Evaluate how vector search differs from keyword search and recommend next steps.,COMPLEX_REASONING
+brainstorm ideas about a three-step plan to reduce API costs,COMPLEX_REASONING
+Which of our internal tools lets me freeze the audit log during an investigation?,RECOMMENDATION
+Write a comparison of three caching strategies.,COMPLEX_REASONING
+Quote the policy section covering data subject deletion requests.,RAG_KNOWLEDGE
+I'd like a detailed analysis of a testing strategy for the new gateway.,COMPLEX_REASONING
+Give me tool recommendations so I can open a ticket for a bug.,RECOMMENDATION
+I need to find failed logins in the logs - what should I use?,RECOMMENDATION
+What are the implications of a comparison of three caching strategies?,COMPLEX_REASONING
+What does the handbook say about rollback criteria?,RAG_KNOWLEDGE
+Write a three-step plan to reduce API costs.,COMPLEX_REASONING
+Analyze our Q3 incident trends.,COMPLEX_REASONING
+Is there a requirement around post-incident reviews?,RAG_KNOWLEDGE
+What are the compliance requirements for the ingest service role?,RAG_KNOWLEDGE
+I need to page the on-call engineer - what should I use?,RECOMMENDATION
+What would you recommend for me to page the on-call engineer?,RECOMMENDATION
+What is our policy on critical vulnerability patching?,RAG_KNOWLEDGE
+What does governance say about prompt injection handling?,RAG_KNOWLEDGE
+What are the implications of a migration from MongoDB to PostgreSQL?,COMPLEX_REASONING
+Compare options for how to prioritise a backlog of 40 bugs.,COMPLEX_REASONING
+Help me think through how to prioritise a backlog of 40 bugs.,COMPLEX_REASONING
+How long do we keep data for SEV2 incidents?,RAG_KNOWLEDGE
+brainstorm ideas about the pros and cons of fine-tuning versus RAG,COMPLEX_REASONING
+Any tool suggestions to freeze the audit log during an investigation?,RECOMMENDATION
+Suggest the best tool for when I need to share KPI charts with leadership.,RECOMMENDATION
+Evaluate an email to customers about planned downtime and recommend next steps.,COMPLEX_REASONING
+Explain an email to customers about planned downtime.,COMPLEX_REASONING
+Quote the policy section covering rollback criteria.,RAG_KNOWLEDGE
+Are we allowed to skip customer data storage?,RAG_KNOWLEDGE
+what's the quickest tool to search the application logs for errors,RECOMMENDATION
+What tools do people in my role use to track a follow-up task?,RECOMMENDATION
+Can you look up the guideline for SEV1 incidents?,RAG_KNOWLEDGE
+Analyze the math behind a 99.9% availability target.,COMPLEX_REASONING
+Summarize the internal standard for PII redaction.,RAG_KNOWLEDGE
+Recommend a tool to get cost numbers for the finance review.,RECOMMENDATION
+What tools do people in my role use to export query results to a spreadsheet?,RECOMMENDATION
+Analyze a project plan for rolling out the assistant to two new teams.,COMPLEX_REASONING
+Can you draft our Q3 incident trends?,COMPLEX_REASONING
+Give me your reasoning on the latency regression after Tuesday's release.,COMPLEX_REASONING
+Outline the root cause hypotheses for intermittent timeouts.,COMPLEX_REASONING
+Evaluate a comparison of three caching strategies and recommend next steps.,COMPLEX_REASONING
+What are the compliance requirements for destructive database writes?,RAG_KNOWLEDGE
+what's the quickest tool to share KPI charts with leadership,RECOMMENDATION
+Where is SEV1 incidents documented?,RAG_KNOWLEDGE
+what's the official procedure for rollback criteria,RAG_KNOWLEDGE
+Analyze the root cause hypotheses for intermittent timeouts.,COMPLEX_REASONING
+How long do we keep data for the analyst role?,RAG_KNOWLEDGE
+Is there a requirement around vendor reviews?,RAG_KNOWLEDGE
+Can you draft why p95 latency could rise while p50 stays flat?,COMPLEX_REASONING
+Recommend a tool to report on this week's AI spend.,RECOMMENDATION
+What are the implications of how to prioritise a backlog of 40 bugs?,COMPLEX_REASONING
+What are the rules for audit log retention?,RAG_KNOWLEDGE
+what's the quickest tool to report on this week's AI spend,RECOMMENDATION
+"per our runbook, what happens with the ingest service role?",RAG_KNOWLEDGE
+Quote the policy section covering leaked secrets.,RAG_KNOWLEDGE
+Who needs to approve the AI budget?,RAG_KNOWLEDGE
+Which tool should I use to track a follow-up task?,RECOMMENDATION
+"according to company policy, how should SEV1 incidents be handled",RAG_KNOWLEDGE
+Walk me through how to prioritise a backlog of 40 bugs.,COMPLEX_REASONING
+"per our runbook, what happens with post-incident reviews?",RAG_KNOWLEDGE
+What tools do people in my role use to start an access review?,RECOMMENDATION
+Summarize the internal standard for refund approvals.,RAG_KNOWLEDGE
+what's the quickest tool to find failed logins in the logs,RECOMMENDATION
+Suggest the best tool for when I need to issue a refund to a customer.,RECOMMENDATION
+what's the quickest tool to track a follow-up task,RECOMMENDATION
+What tools do people in my role use to open a ticket for a bug?,RECOMMENDATION
+Outline a summary of this error message for a non-technical manager.,COMPLEX_REASONING
+Break down risks in our current on-call rotation for me.,COMPLEX_REASONING
+is there a tool to get cost numbers for the finance review,RECOMMENDATION
+What tool can help me open a ticket for a bug?,RECOMMENDATION
+What are the implications of risks in our current on-call rotation?,COMPLEX_REASONING
+Summarize the internal standard for audit log retention.,RAG_KNOWLEDGE
+What does the handbook say about customer data storage?,RAG_KNOWLEDGE
+think step by step about an email to customers about planned downtime,COMPLEX_REASONING
+Summarize the internal standard for vendor reviews.,RAG_KNOWLEDGE
+Outline the math behind a 99.9% availability target.,COMPLEX_REASONING
+is there a tool to page the on-call engineer,RECOMMENDATION
+Which of our internal tools lets me snapshot a dashboard for a meeting?,RECOMMENDATION
+Who needs to approve admin access reviews?,RAG_KNOWLEDGE
+Summarize the internal standard for cloud model usage.,RAG_KNOWLEDGE
+Summarize the internal standard for API key rotation.,RAG_KNOWLEDGE
+what's the official procedure for SEV2 incidents,RAG_KNOWLEDGE
+Explain the root cause hypotheses for intermittent timeouts.,COMPLEX_REASONING
+Who needs to approve the analyst role?,RAG_KNOWLEDGE
+Are we allowed to skip critical vulnerability patching?,RAG_KNOWLEDGE
+Outline the trade-offs between batch and streaming ETL.,COMPLEX_REASONING
+What are the implications of how to estimate capacity for 10x traffic?,COMPLEX_REASONING
+Walk me through how to estimate capacity for 10x traffic.,COMPLEX_REASONING
+remind me what the rule is for conversation memory retention,RAG_KNOWLEDGE
+Walk me through the root cause hypotheses for intermittent timeouts.,COMPLEX_REASONING
+Explain a project plan for rolling out the assistant to two new teams.,COMPLEX_REASONING
+is there a tool to rotate an API key,RECOMMENDATION
+Is there a requirement around API key rotation?,RAG_KNOWLEDGE
+Recommend a tool to search the application logs for errors.,RECOMMENDATION
+Evaluate the math behind a 99.9% availability target and recommend next steps.,COMPLEX_REASONING
+What are the compliance requirements for audit log retention?,RAG_KNOWLEDGE
+think step by step about how vector search differs from keyword search,COMPLEX_REASONING
+Analyze risks in our current on-call rotation.,COMPLEX_REASONING
+Any tool suggestions to get cost numbers for the finance review?,RECOMMENDATION
+Outline how to estimate capacity for 10x traffic.,COMPLEX_REASONING
+How long do we keep data for deployment windows?,RAG_KNOWLEDGE
+Which tool should I use to freeze the audit log during an investigation?,RECOMMENDATION
+What are the compliance requirements for admin access reviews?,RAG_KNOWLEDGE
+Any tool suggestions to page the on-call engineer?,RECOMMENDATION
+Suggest the best tool for when I need to open a ticket for a bug.,RECOMMENDATION
+point me to the right tool to report on this week's AI spend,RECOMMENDATION
+Is there a requirement around customer data storage?,RAG_KNOWLEDGE
+What would you recommend for me to report on this week's AI spend?,RECOMMENDATION
+Is there a requirement around rollback criteria?,RAG_KNOWLEDGE
+Explain a short status update for leadership.,COMPLEX_REASONING
+"per our runbook, what happens with SEV2 incidents?",RAG_KNOWLEDGE
+What is our policy on TLS for database connections?,RAG_KNOWLEDGE
+Which of our internal tools lets me page the on-call engineer?,RECOMMENDATION
+What does governance say about raw log retention?,RAG_KNOWLEDGE
+Which tool should I use to share KPI charts with leadership?,RECOMMENDATION
+What would you recommend for me to rotate an API key?,RECOMMENDATION
+Can you draft the pros and cons of fine-tuning versus RAG?,COMPLEX_REASONING
+What timeline applies to rollback criteria?,RAG_KNOWLEDGE
+Give me tool recommendations so I can find failed logins in the logs.,RECOMMENDATION
+Walk me through the math behind a 99.9% availability target.,COMPLEX_REASONING
+Give me tool recommendations so I can share KPI charts with leadership.,RECOMMENDATION
+What are the rules for API key rotation?,RAG_KNOWLEDGE
+Are we allowed to skip prompt injection handling?,RAG_KNOWLEDGE
+Which of our internal tools lets me find failed logins in the logs?,RECOMMENDATION
+I'd like a detailed analysis of the pros and cons of fine-tuning versus RAG.,COMPLEX_REASONING
+What does governance say about admin access reviews?,RAG_KNOWLEDGE
+Write our Q3 incident trends.,COMPLEX_REASONING
+Give me your reasoning on how to estimate capacity for 10x traffic.,COMPLEX_REASONING
+Which tool should I use to export query results to a spreadsheet?,RECOMMENDATION
+think step by step about risks in our current on-call rotation,COMPLEX_REASONING
+remind me what the rule is for rollback criteria,RAG_KNOWLEDGE
+what's the quickest tool to page the on-call engineer,RECOMMENDATION
+Evaluate why p95 latency could rise while p50 stays flat and recommend next steps.,COMPLEX_REASONING
+Which tool should I use to find failed logins in the logs?,RECOMMENDATION
+Help me think through how vector search differs from keyword search.,COMPLEX_REASONING
+Recommend a tool to track a follow-up task.,RECOMMENDATION
+Explain how to prioritise a backlog of 40 bugs.,COMPLEX_REASONING
+Suggest the best tool for when I need to export query results to a spreadsheet.,RECOMMENDATION
+Which tool should I use to search the application logs for errors?,RECOMMENDATION
+Quote the policy section covering SEV2 incidents.,RAG_KNOWLEDGE
+Are we allowed to skip leaked secrets?,RAG_KNOWLEDGE
+think step by step about the math behind a 99.9% availability target,COMPLEX_REASONING
+Summarize the internal standard for SEV2 incidents.,RAG_KNOWLEDGE
+What is our policy on PII redaction?,RAG_KNOWLEDGE
+Can you draft how to estimate capacity for 10x traffic?,COMPLEX_REASONING
+Give me your reasoning on the math behind a 99.9% availability target.,COMPLEX_REASONING
+Can you draft a summary of this error message for a non-technical manager?,COMPLEX_REASONING
+Give me tool recommendations so I can start an access review.,RECOMMENDATION
+I'd like a detailed analysis of a three-step plan to reduce API costs.,COMPLEX_REASONING
+I'd like a detailed analysis of how to estimate capacity for 10x traffic.,COMPLEX_REASONING
+Suggest the best tool for when I need to report on this week's AI spend.,RECOMMENDATION
+what's the quickest tool to freeze the audit log during an investigation,RECOMMENDATION
+Is there a requirement around the AI budget?,RAG_KNOWLEDGE
+what's the quickest tool to open a ticket for a bug,RECOMMENDATION
+is there a tool to start an access review,RECOMMENDATION
+Which of our internal tools lets me search the application logs for errors?,RECOMMENDATION
+What would you recommend for me to track a follow-up task?,RECOMMENDATION
+Are we allowed to skip TLS for database connections?,RAG_KNOWLEDGE
+Which of our internal tools lets me start an access review?,RECOMMENDATION
+Which of our internal tools lets me export query results to a spreadsheet?,RECOMMENDATION
+Evaluate the trade-offs between batch and streaming ETL and recommend next steps.,COMPLEX_REASONING
+Any tool suggestions to rotate an API key?,RECOMMENDATION
+Write the latency regression after Tuesday's release.,COMPLEX_REASONING
+How long do we keep data for audit log retention?,RAG_KNOWLEDGE
+Compare options for how vector search differs from keyword search.,COMPLEX_REASONING
+remind me what the rule is for critical vulnerability patching,RAG_KNOWLEDGE
+What are the rules for destructive database writes?,RAG_KNOWLEDGE
+Help me think through how to estimate capacity for 10x traffic.,COMPLEX_REASONING
+Is there a requirement around refund approvals?,RAG_KNOWLEDGE
+is there a tool to snapshot a dashboard for a meeting,RECOMMENDATION
+What timeline applies to TLS for database connections?,RAG_KNOWLEDGE
+Which of our internal tools lets me share KPI charts with leadership?,RECOMMENDATION
+What tools do people in my role use to get cost numbers for the finance review?,RECOMMENDATION
+Give me your reasoning on a project plan for rolling out the assistant to two new teams.,COMPLEX_REASONING
+what's the official procedure for destructive database writes,RAG_KNOWLEDGE
+What are the implications of the math behind a 99.9% availability target?,COMPLEX_REASONING
+Which tool should I use to open a ticket for a bug?,RECOMMENDATION
+What would you recommend for me to search the application logs for errors?,RECOMMENDATION
+What does governance say about data subject deletion requests?,RAG_KNOWLEDGE
+Compare options for a migration from MongoDB to PostgreSQL.,COMPLEX_REASONING
+what's the quickest tool to rotate an API key,RECOMMENDATION
+What does the handbook say about critical vulnerability patching?,RAG_KNOWLEDGE
+Help me think through a three-step plan to reduce API costs.,COMPLEX_REASONING
+Where is cloud model usage documented?,RAG_KNOWLEDGE
+What does the handbook say about data subject deletion requests?,RAG_KNOWLEDGE
+Give me your reasoning on risks in our current on-call rotation.,COMPLEX_REASONING
+is there a tool to report on this week's AI spend,RECOMMENDATION
+what's the quickest tool to snapshot a dashboard for a meeting,RECOMMENDATION
+what's the quickest tool to issue a refund to a customer,RECOMMENDATION
+Who needs to approve human-in-the-loop approvals?,RAG_KNOWLEDGE
+What is our policy on raw log retention?,RAG_KNOWLEDGE
+Outline how to prioritise a backlog of 40 bugs.,COMPLEX_REASONING
+What tool can help me get cost numbers for the finance review?,RECOMMENDATION
+What is our policy on audit log retention?,RAG_KNOWLEDGE
+Which tool should I use to get cost numbers for the finance review?,RECOMMENDATION
+What are the compliance requirements for database migrations?,RAG_KNOWLEDGE
+Are we allowed to skip post-incident reviews?,RAG_KNOWLEDGE
+Evaluate a summary of this error message for a non-technical manager and recommend next steps.,COMPLEX_REASONING
+"according to company policy, how should raw log retention be handled",RAG_KNOWLEDGE
+Compare options for a short status update for leadership.,COMPLEX_REASONING
+Suggest the best tool for when I need to escalate an outage.,RECOMMENDATION
+what's the quickest tool to escalate an outage,RECOMMENDATION
+Give me tool recommendations so I can freeze the audit log during an investigation.,RECOMMENDATION
+What are the implications of a short status update for leadership?,COMPLEX_REASONING
+What does governance say about the analyst role?,RAG_KNOWLEDGE
+I'd like a detailed analysis of why p95 latency could rise while p50 stays flat.,COMPLEX_REASONING
+What are the implications of a summary of this error message for a non-technical manager?,COMPLEX_REASONING
+Where is audit log retention documented?,RAG_KNOWLEDGE
+What does governance say about leaked secrets?,RAG_KNOWLEDGE
+Recommend a tool to snapshot a dashboard for a meeting.,RECOMMENDATION
+What does the handbook say about cloud model usage?,RAG_KNOWLEDGE
+Quote the policy section covering conversation memory retention.,RAG_KNOWLEDGE
+Who needs to approve vendor reviews?,RAG_KNOWLEDGE
+I need to start an access review - what should I use?,RECOMMENDATION
+Evaluate the pros and cons of fine-tuning versus RAG and recommend next steps.,COMPLEX_REASONING
+Can you draft risks in our current on-call rotation?,COMPLEX_REASONING
+"per our runbook, what happens with leaked secrets?",RAG_KNOWLEDGE
+What is our policy on prompt injection handling?,RAG_KNOWLEDGE
+"per our runbook, what happens with data subject deletion requests?",RAG_KNOWLEDGE
+Give me your reasoning on the trade-offs between batch and streaming ETL.,COMPLEX_REASONING
+Quote the policy section covering post-incident reviews.,RAG_KNOWLEDGE
+"according to company policy, how should rollback criteria be handled",RAG_KNOWLEDGE
+What timeline applies to leaked secrets?,RAG_KNOWLEDGE
+What are the compliance requirements for post-incident reviews?,RAG_KNOWLEDGE
+What would you recommend for me to freeze the audit log during an investigation?,RECOMMENDATION
+What timeline applies to admin access reviews?,RAG_KNOWLEDGE
+What timeline applies to the analyst role?,RAG_KNOWLEDGE
+Explain the latency regression after Tuesday's release.,COMPLEX_REASONING
+Compare options for the pros and cons of fine-tuning versus RAG.,COMPLEX_REASONING
+Suggest the best tool for when I need to find failed logins in the logs.,RECOMMENDATION
+How long do we keep data for raw log retention?,RAG_KNOWLEDGE
+think step by step about our Q3 incident trends,COMPLEX_REASONING
+What does governance say about SEV1 incidents?,RAG_KNOWLEDGE
+point me to the right tool to freeze the audit log during an investigation,RECOMMENDATION
+Give me tool recommendations so I can escalate an outage.,RECOMMENDATION
+What tool can help me search the application logs for errors?,RECOMMENDATION
+Outline a testing strategy for the new gateway.,COMPLEX_REASONING
+point me to the right tool to find failed logins in the logs,RECOMMENDATION
+think step by step about how to prioritise a backlog of 40 bugs,COMPLEX_REASONING
+What tools do people in my role use to escalate an outage?,RECOMMENDATION
+What is our policy on the ingest service role?,RAG_KNOWLEDGE
+Break down a testing strategy for the new gateway for me.,COMPLEX_REASONING
+Quote the policy section covering the ingest service role.,RAG_KNOWLEDGE
+"per our runbook, what happens with prompt injection handling?",RAG_KNOWLEDGE
+I'd like a detailed analysis of a short status update for leadership.,COMPLEX_REASONING
+What would you recommend for me to start an access review?,RECOMMENDATION
+what's the official procedure for admin access reviews,RAG_KNOWLEDGE
+How long do we keep data for critical vulnerability patching?,RAG_KNOWLEDGE
+Recommend a tool to export query results to a spreadsheet.,RECOMMENDATION
+What would you recommend for me to export query results to a spreadsheet?,RECOMMENDATION
+Walk me through a migration from MongoDB to PostgreSQL.,COMPLEX_REASONING
+Any tool suggestions to export query results to a spreadsheet?,RECOMMENDATION
+What does the handbook say about deployment windows?,RAG_KNOWLEDGE
+Break down a short status update for leadership for me.,COMPLEX_REASONING
+What would you recommend for me to issue a refund to a customer?,RECOMMENDATION
+Recommend a tool to share KPI charts with leadership.,RECOMMENDATION
+Evaluate a testing strategy for the new gateway and recommend next steps.,COMPLEX_REASONING
+What would you recommend for me to open a ticket for a bug?,RECOMMENDATION
+What tools do people in my role use to search the application logs for errors?,RECOMMENDATION
+"per our runbook, what happens with PII redaction?",RAG_KNOWLEDGE
+Help me think through why p95 latency could rise while p50 stays flat.,COMPLEX_REASONING
+Can you draft the root cause hypotheses for intermittent timeouts?,COMPLEX_REASONING
+"according to company policy, how should refund approvals be handled",RAG_KNOWLEDGE
+Who needs to approve leaked secrets?,RAG_KNOWLEDGE
+what's the official procedure for customer data storage,RAG_KNOWLEDGE
+I need to track a follow-up task - what should I use?,RECOMMENDATION
+Walk me through the pros and cons of fine-tuning versus RAG.,COMPLEX_REASONING
+Quote the policy section covering TLS for database connections.,RAG_KNOWLEDGE
+What tool can help me track a follow-up task?,RECOMMENDATION
+What are the implications of the root cause hypotheses for intermittent timeouts?,COMPLEX_REASONING
+What would you recommend for me to find failed logins in the logs?,RECOMMENDATION
+Help me think through the root cause hypotheses for intermittent timeouts.,COMPLEX_REASONING
+Write how to estimate capacity for 10x traffic.,COMPLEX_REASONING
+Which of our internal tools lets me escalate an outage?,RECOMMENDATION
+Give me tool recommendations so I can snapshot a dashboard for a meeting.,RECOMMENDATION
+Which of our internal tools lets me rotate an API key?,RECOMMENDATION
+Walk me through an email to customers about planned downtime.,COMPLEX_REASONING

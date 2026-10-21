@@ -1,13 +1,55 @@
-system:
-  environment: local_development
-  debug_mode: true
+# NexusAI runtime settings. Every value can be overridden by the environment
+# variable named in the comment next to it (see ai_orchestrator/config.py).
 
-databases:
-  postgres_host: "postgres"
-  postgres_port: 5432
-  mongo_host: "mongodb"
-  mongo_port: 27017
+environment: development            # NEXUS_ENV
+
+paths:
+  data_dir: data                    # NEXUS_DATA_DIR   (runtime state: events, chroma, lake, warehouse)
+  artifacts_dir: artifacts          # NEXUS_ARTIFACTS_DIR (trained models)
 
 llm:
-  local_fallback_model: "qwen2.5:1.5b"
-  cloud_brain_model: "claude-haiku-4-5-20251001"
+  ollama_base_url: http://localhost:11434   # OLLAMA_BASE_URL
+  local_model: qwen2.5:1.5b                 # NEXUS_LOCAL_MODEL - security scan + low-confidence routing
+  reasoner:
+    provider: ollama                        # NEXUS_REASONER_PROVIDER: ollama | anthropic | fake
+    cloud_routes: [COMPLEX_REASONING]       # with provider=anthropic, only these intents use Claude;
+                                            # knowledge lookups and tool recommendations stay local
+    ollama_model: qwen2.5:1.5b              # NEXUS_REASONER_OLLAMA_MODEL
+    anthropic_model: claude-haiku-4-5       # NEXUS_ANTHROPIC_MODEL
+    max_output_tokens: 700
+    timeout_s: 90
+    fallback_to_local: true                 # answer with Ollama if the cloud call fails
+  # USD per million tokens. Local models cost 0.
+  pricing_usd_per_million_tokens:
+    claude-haiku-4-5: {input: 1.00, output: 5.00}
+    claude-haiku-5-5: {input: 0.10, output: 0.50}
+  spend_cap_usd_per_process: 2.00           # NEXUS_SPEND_CAP_USD - hard stop for cloud calls
+
+router:
+  model_file: intent_router.joblib          # inside artifacts_dir
+  model_uri: ""                             # NEXUS_ROUTER_MODEL_URI, e.g. models:/nexus-intent-router@champion
+  confidence_threshold: 0.65
+  llm_fallback: true                        # NEXUS_ROUTER_LLM_FALLBACK
+
+retrieval:
+  embeddings: ollama                        # NEXUS_EMBEDDINGS: ollama | hash (hash = offline, CI)
+  embed_model: nomic-embed-text
+  chunk_size: 220
+  chunk_overlap: 30
+  top_k: 3
+
+memory:
+  mongo_uri: ""                             # MONGO_URI (empty = in-process memory)
+  history_turns: 3
+  retention_days: 30
+
+telemetry:
+  mlflow_tracking_uri: ""                   # MLFLOW_TRACKING_URI (empty = tracing off)
+  mlflow_experiment: nexus-agent
+
+server:
+  host: 0.0.0.0
+  port: 8765
+  max_concurrency: 8                        # NEXUS_MAX_CONCURRENCY
+  request_timeout_s: 150
+  internal_token: ""                        # NEXUS_INTERNAL_TOKEN - shared secret with the Java gateway

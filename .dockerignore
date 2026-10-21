@@ -1,0 +1,18 @@
+# Never send secrets, local state or build output to the Docker daemon.
+.env
+*.env
+.git
+.venv*
+**/__pycache__
+**/.pytest_cache
+.ruff_cache
+data
+mlruns
+local_infra/mlflow
+core_engines/audio-processor-cpp/build
+core_engines/gateway-service-java/target
+models/whisper/*.bin
+reports
+.DS_Store
+.vscode
+.idea

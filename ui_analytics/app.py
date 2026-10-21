@@ -11,7 +11,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from ai_orchestrator.agents.graph import run_monitored_agent
+from ai_orchestrator.graph import run_agent
 
 # Initialize connection to local persistent DuckDB analytical warehouse
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "analytics_warehouse.db")
@@ -68,11 +68,11 @@ with col_ui:
             start_time = time.time()
 
             # Trigger our LangGraph state machine running MLflow traces under the hood
-            result = run_monitored_agent(user_query)
+            result = run_agent(user_query, principal="streamlit-local", role="ANALYST")
             elapsed_ms = (time.time() - start_time) * 1000.0
 
-            dest_node = result.get("routing_destination", "COMPLEX_REASONING")
-            tokens = result.get("tokens_used", 0)
+            dest_node = (result.get("route") or {}).get("intent", result["status"])
+            tokens = result["usage"]["input_tokens"] + result["usage"]["output_tokens"]
 
             # Commit transactional metrics immediately inside an isolated write hook context
             with duckdb.connect(DB_FILE) as con:
@@ -83,11 +83,11 @@ with col_ui:
 
             # Display localized outputs
             st.success("Analysis Complete!")
-            st.markdown(f"**Security Check Status:** {'Passed' if result.get('security_passed', True) else 'Triggered Shield'}")
+            st.markdown(f"**Security Check Status:** {'Passed' if result['security']['passed'] else 'Blocked'}")
             st.markdown(f"**Identified Routing Node Path:** `{dest_node}`")
 
             st.subheader("Cloud Core Brain Resolution:")
-            st.info(result.get("final_response", "No agent resolution returned."))
+            st.info(result["answer"])
 
 # ==========================================
 # 📊 RIGHT PANEL: SPARK METRICS & BI GRAPHS

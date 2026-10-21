@@ -31,6 +31,6 @@ reports/*.json
 !reports/.gitkeep
 ui_analytics/analytics_warehouse.db
 
-# Legacy pipeline outputs
-data_pipeline/storage/*
-!data_pipeline/storage/raw_application_log.log
+
+# Runtime state from the pre-rework stack (Chroma/Mongo/Postgres files) - never commit
+data_pipeline/storage/

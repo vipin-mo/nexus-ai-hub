@@ -16,7 +16,7 @@ chromadb==1.5.9
 # Classical ML, NER-based PII redaction
 scikit-learn==1.9.1
 numpy==2.4.6
-pandas==3.0.6
+pandas==2.3.3
 joblib==1.6.0
 spacy==3.8.16
 en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl

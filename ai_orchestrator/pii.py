@@ -41,9 +41,16 @@ PATTERNS: list[tuple[str, re.Pattern]] = [
 PLACEHOLDER = re.compile(r"<[A-Z_]+>")
 
 
+CARD_PREFIX = re.compile(r"^(?:4|5[1-5]|2[2-7]|3[47]|6011|65)")  # Visa, Mastercard, Amex, Discover
+
+
 def luhn_ok(digits: str) -> bool:
+    """Card check: 15-19 digits, a known issuer prefix and a valid Luhn checksum.
+
+    Length and prefix matter: about 1 in 10 random digit strings passes Luhn alone, which
+    redacted ~10% of order numbers in the synthetic logs before this check was added."""
     nums = [int(d) for d in digits if d.isdigit()]
-    if not 13 <= len(nums) <= 19:
+    if not 15 <= len(nums) <= 19 or not CARD_PREFIX.match("".join(map(str, nums))):
         return False
     total = 0
     for i, n in enumerate(reversed(nums)):

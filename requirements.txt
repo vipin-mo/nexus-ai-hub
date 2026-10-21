@@ -12,6 +12,7 @@ llama-index-vector-stores-chroma==0.6.0
 llama-index-embeddings-ollama==0.10.0
 llama-index-retrievers-bm25==0.8.0
 chromadb==1.5.9
+nltk==3.10.4          # pinned: LlamaIndex sentence splitting; data dir must be private (NLTK_DATA)
 
 # Classical ML, NER-based PII redaction
 scikit-learn==1.9.1

@@ -15,6 +15,9 @@ permissions:
 env:
   MLFLOW_DISABLE_AGENT_HINT: "1"
   MLFLOW_DISABLE_TELEMETRY: "true"
+  # NLTK >= 3.10.4 refuses data directories other users can write to, and the runner's site-packages
+  # (where LlamaIndex bundles its NLTK data) is group-writable. Use a private directory instead.
+  NLTK_DATA: ${{ github.workspace }}/../nltk_data
 
 jobs:
   python:
@@ -27,6 +30,8 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Fetch NLTK data into the private NLTK_DATA directory
+        run: python -c "import nltk, os; [nltk.download(p, download_dir=os.environ['NLTK_DATA'], quiet=True, raise_on_error=True) for p in ('stopwords', 'punkt_tab')]"
       - run: ruff check ai_orchestrator evals tests scripts data_pipeline ui_analytics
       - run: python -m pytest
       - name: Offline evaluation and quality gate (fails the build on regression)

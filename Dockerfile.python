@@ -11,9 +11,11 @@ RUN python -m venv /opt/venv && /opt/venv/bin/pip install -r requirements.txt
 FROM python:3.11-slim AS app
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PATH=/opt/venv/bin:$PATH \
     PYTHONPATH=/app MLFLOW_DISABLE_AGENT_HINT=1 MLFLOW_DISABLE_TELEMETRY=true \
-    NEXUS_DATA_DIR=/data NEXUS_ARTIFACTS_DIR=/app/artifacts
+    NEXUS_DATA_DIR=/data NEXUS_ARTIFACTS_DIR=/app/artifacts NLTK_DATA=/app/nltk_data
 WORKDIR /app
 COPY --from=deps /opt/venv /opt/venv
+# NLTK data in a directory only the image owns (NLTK refuses shared-writable data directories).
+RUN python -c "import nltk; [nltk.download(p, download_dir='/app/nltk_data', quiet=True, raise_on_error=True) for p in ('stopwords', 'punkt_tab')]"
 
 COPY config ./config
 COPY ai_orchestrator ./ai_orchestrator

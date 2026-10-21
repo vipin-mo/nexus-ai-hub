@@ -92,6 +92,10 @@ def test_parse_json_object_handles_prose_and_nested_braces():
         parse_json_object("no json here")
 
 
+def test_fake_chat_json_matches_scanner_schema():
+    assert parse_json_object(FakeChat().complete("s", "u", json_mode=True).text)["is_attack"] is False
+
+
 def test_fake_chat_cites_first_source():
     user = "<sources>\n[security_policy.md]\nAll destructive writes need a named engineer to approve them.\n</sources>"
     assert FakeChat().complete("s", user).text.endswith("[security_policy.md]")

@@ -62,7 +62,8 @@ services:
       NEXUS_SPEND_CAP_USD: ${NEXUS_SPEND_CAP_USD:-2.00}
       MONGO_URI: mongodb://${MONGO_USER:-nexus_admin}:${MONGO_PASSWORD}@mongodb:27017/?authSource=admin
       MLFLOW_TRACKING_URI: http://mlflow:5000
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      # Not OLLAMA_BASE_URL: a host-side value such as localhost:11434 in .env is wrong inside a container.
+      OLLAMA_BASE_URL: ${NEXUS_CONTAINER_OLLAMA_URL:-http://host.docker.internal:11434}
     extra_hosts: ["host.docker.internal:host-gateway"]
     volumes: [nexus_data:/data]
     depends_on:

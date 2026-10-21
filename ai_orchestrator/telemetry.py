@@ -4,7 +4,8 @@ Two separate concerns with different failure policies:
 
 * MLflow tracing is observability. It is set up lazily (never at import), probes the server
   with a 1.5 s timeout, uses async logging, and turns itself off if the server is
-  unreachable - a dead MLflow server must never block or fail a user request.
+  unreachable - a dead MLflow server must never block or fail a user request. Every span
+  passes through ``redact_span`` before export, so traces never contain raw identifiers.
 * The JSONL event log under ``data/events`` is the local record of every request
   (redacted text only). The Spark ETL job loads it into the lake and warehouse.
   The authoritative security audit trail is the PostgreSQL ledger written by the gateway.
@@ -60,6 +61,7 @@ def init_tracing(settings: Settings | None = None) -> bool:
             mlflow.set_tracking_uri(uri)
             mlflow.set_experiment(settings.mlflow_experiment)
             mlflow.config.enable_async_logging(True)
+            mlflow.tracing.configure(span_processors=[redact_span])
             mlflow.langchain.autolog()   # LangGraph nodes + Ollama chat calls, with token usage
             mlflow.anthropic.autolog()   # Claude calls, with token usage
             _tracing_enabled = True
@@ -69,6 +71,32 @@ def init_tracing(settings: Settings | None = None) -> bool:
             mlflow.tracing.disable()
             _tracing_enabled = False
         return _tracing_enabled
+
+
+@lru_cache(maxsize=4096)
+def _redact_text(text: str) -> str:
+    from ai_orchestrator.pii import get_redactor
+
+    return get_redactor().redact(text).text
+
+
+def _redact_value(value):
+    if isinstance(value, str):
+        return _redact_text(value)
+    if isinstance(value, dict):
+        return {k: _redact_value(v) for k, v in value.items()}
+    if isinstance(value, list | tuple):
+        return [_redact_value(v) for v in value]
+    return value
+
+
+def redact_span(span) -> None:
+    """MLflow span processor: graph state (including the original query) and model messages are
+    recorded as span inputs/outputs, so every span is redacted before it is exported."""
+    if span.inputs is not None:
+        span.set_inputs(_redact_value(span.inputs))
+    if span.outputs is not None:
+        span.set_outputs(_redact_value(span.outputs))
 
 
 def reset_tracing_state() -> None:

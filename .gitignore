@@ -28,8 +28,7 @@ __pycache__/
 /mlruns/
 local_infra/mlflow/
 models/whisper/*.bin
-reports/*.json
-!reports/.gitkeep
+/reports/
 ui_analytics/analytics_warehouse.db
 
 
@@ -38,3 +37,6 @@ data_pipeline/storage/
 
 # Kubernetes secrets (generated into a Secret by kustomize)
 local_infra/k8s/secrets.env
+
+# Personal notes and paid-test evidence (kept locally, not published)
+/notes/

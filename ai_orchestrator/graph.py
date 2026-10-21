@@ -186,18 +186,26 @@ def build_graph():
     return g.compile()
 
 
-@mlflow.trace(name="nexus_request", span_type=SpanType.CHAIN)
 def _invoke(state: AgentState) -> tuple[dict, str | None]:
-    final = build_graph().invoke(state)
-    span = mlflow.get_current_active_span()
-    if span is None:
-        return final, None
-    mlflow.update_current_trace(
-        tags={"route": final.get("route", {}).get("intent", "BLOCKED"),
-              "provider": final.get("llm", {}).get("provider", "none"),
-              "source": state["source"], "prompt_version": final.get("prompt_version", "-")},
-        session_id=session_key(state["principal"], state["session_id"]), user=state["principal"])
-    return final, span.trace_id
+    """Run the graph under a root span whose inputs/outputs are a small redacted summary.
+
+    The full graph state (including the original query) stays in child spans, which the
+    telemetry span processor redacts; the root span is what MLflow uses for trace previews."""
+    with mlflow.start_span(name="nexus_request", span_type=SpanType.CHAIN) as span:
+        final = build_graph().invoke(state)
+        route = (final.get("route") or {}).get("intent", "BLOCKED")
+        question, answer = final.get("clean_query", "[blocked]"), final.get("answer", "")
+        span.set_inputs({"question": question, "principal": state["principal"], "role": state["role"],
+                         "source": state["source"]})
+        span.set_outputs({"answer": answer, "route": route, "sources": [c["source"] for c in final.get("sources", [])]})
+        if mlflow.get_current_active_span() is None:  # tracing disabled
+            return final, None
+        mlflow.update_current_trace(
+            tags={"route": route, "provider": final.get("llm", {}).get("provider", "none"),
+                  "source": state["source"], "prompt_version": final.get("prompt_version", "-")},
+            session_id=session_key(state["principal"], state["session_id"]), user=state["principal"],
+            request_preview=question[:300], response_preview=answer[:500])
+        return final, span.trace_id
 
 
 def run_agent(query: str, *, principal: str = "local", role: str = "ANALYST", session_id: str | None = None,

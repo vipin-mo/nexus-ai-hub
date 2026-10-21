@@ -39,6 +39,12 @@ if [[ "${1:-}" == "--merge" ]]; then
   done < .env.sample
   chmod 600 .env
   echo "merged $added key(s) into .env (backup: $backup). Existing values were not changed."
+  obsolete=$(cut -d= -f1 .env | grep -E '^[A-Z_][A-Z0-9_]*$' | while read -r k; do
+    grep -qE "^${k}=" .env.sample || echo "$k"; done | tr '\n' ' ')
+  if [[ -n "$obsolete" ]]; then
+    echo "note: these keys are not used by this version and can be deleted from .env: $obsolete"
+    echo "      (VS Code loads .env into its terminals, so stale values such as MLFLOW_TRACKING_URI leak into commands)"
+  fi
   exit 0
 fi
 

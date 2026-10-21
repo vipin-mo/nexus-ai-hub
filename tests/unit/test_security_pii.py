@@ -128,3 +128,30 @@ def test_constant_case_identifiers_are_not_names(redactor):
     out = redactor.redact("Use REFUND_DISPATCH or SECURITY_AUDIT_LOG_FREEZE, approved by Maria Garcia.")
     assert "REFUND_DISPATCH" in out.text and "SECURITY_AUDIT_LOG_FREEZE" in out.text
     assert "Maria Garcia" not in out.text
+
+
+def test_scanner_requires_boolean_is_attack(settings_override, monkeypatch):
+    from ai_orchestrator import llm, security
+
+    settings_override(NEXUS_SECURITY_LLM_SCAN="true")
+
+    class OldSchema(llm.FakeChat):
+        def complete(self, *a, **k):
+            result = super().complete(*a, **k)
+            result.text = '{"verdict": "safe"}'   # missing is_attack -> treated as invalid -> fail closed
+            return result
+
+    monkeypatch.setattr(security, "get_local_model", lambda: OldSchema())
+    assert not SecurityGuard(get_settings()).check("What is the AI budget?").passed
+
+
+def test_mlflow_traces_never_contain_raw_pii(settings_override, tmp_path):
+    import mlflow
+
+    settings_override(MLFLOW_TRACKING_URI=f"sqlite:///{tmp_path}/mlflow.db")
+    r = run_agent("I am Maria Garcia, email maria.garcia@nexus.com - what is the AI budget?", principal="trace-test")
+    assert r["trace_id"]
+    mlflow.flush_trace_async_logging()
+    stored = mlflow.get_trace(r["trace_id"]).to_json()
+    assert "maria.garcia@nexus.com" not in stored and "Maria Garcia" not in stored
+    assert "<EMAIL>" in stored

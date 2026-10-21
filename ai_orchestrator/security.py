@@ -101,9 +101,10 @@ class SecurityGuard:
             reply = get_local_model().complete(prompt, f"<user_input>\n{text}\n</user_input>",
                                                max_tokens=80, json_mode=True)
             result = parse_json_object(reply.text)
-            verdict = str(result.get("verdict", "")).lower()
-            if verdict not in {"safe", "unsafe"}:
-                raise ValueError(f"unexpected verdict {verdict!r}")
+            attack = result.get("is_attack")
+            if not isinstance(attack, bool):
+                raise ValueError(f"unexpected classifier output {result!r}")
+            verdict = "unsafe" if attack else "safe"
         except (LLMError, ValueError) as exc:
             elapsed = round((time.perf_counter() - started) * 1000, 2)
             log.warning("Security classifier unavailable (%s); fail_closed=%s", exc, self.fail_closed)

@@ -149,12 +149,12 @@ with tab_ask:
                 st.markdown(r["answer"])
                 route = r.get("route") or {}
                 usage = r.get("usage") or {}
-                c1, c2, c3, c4 = st.columns(4)
-                c1.metric("Route", route.get("intent", "-"), route.get("source"), delta_color="off")
-                c2.metric("Model", usage.get("model") or "-", usage.get("provider"), delta_color="off")
-                c3.metric("Tokens in/out", f"{usage.get('input_tokens', 0)}/{usage.get('output_tokens', 0)}")
-                c4.metric("Latency", f"{r.get('gateway_latency_ms', r.get('latency_ms', 0)) / 1000:.1f} s",
-                          f"${usage.get('cost_usd', 0):.4f}", delta_color="off")
+                latency_s = r.get("gateway_latency_ms", r.get("latency_ms", 0)) / 1000
+                st.markdown(
+                    f"**Route** `{route.get('intent', '-')}` ({route.get('source', '-')}) · "
+                    f"**Model** `{usage.get('model') or '-'}` ({usage.get('provider') or '-'}) · "
+                    f"**Tokens** {usage.get('input_tokens', 0)} in / {usage.get('output_tokens', 0)} out · "
+                    f"**Cost** ${usage.get('cost_usd', 0):.4f} · **Latency** {latency_s:.1f} s")
                 if r.get("sources"):
                     st.markdown("**Sources:** " + ", ".join(f"`{s['source']}`" for s in r["sources"]))
                 if r.get("recommendations"):
@@ -217,9 +217,10 @@ def live_operations() -> None:
     span = ev["ts"].max() - ev["ts"].min()
     freq = "1min" if span < pd.Timedelta(hours=2) else "10min" if span < pd.Timedelta(days=2) else "1h"
     bucket = ev.set_index("ts").resample(freq)
+    # Empty buckets keep NaN latency so the lines break across idle periods instead of bridging them.
     per = pd.DataFrame({"requests": bucket.size(), "p50": bucket["latency_ms"].quantile(0.5) / 1000,
-                        "p95": bucket["latency_ms"].quantile(0.95) / 1000}).reset_index().dropna()
-    if len(per) < 2:
+                        "p95": bucket["latency_ms"].quantile(0.95) / 1000}).reset_index()
+    if per["p50"].notna().sum() < 2:
         st.caption("Time-series charts appear once requests span more than one time bucket.")
     else:
         c1, c2 = st.columns(2)
@@ -326,6 +327,9 @@ with tab_audit:
     persona_audit = st.radio("Read the ledger as", ["Admin", "Analyst"], horizontal=True, key="audit_persona")
     code, data = gateway("GET", "/api/v1/audit?limit=100", persona_audit)
     if code == 200:
-        st.dataframe(pd.DataFrame(data), hide_index=True, width="stretch")
+        cols = ["createdAt", "eventType", "clientName", "role", "endpoint", "source", "status", "route",
+                "securityPassed", "inputTokens", "outputTokens", "costUsd", "latencyMs", "querySha256", "requestId"]
+        audit = pd.DataFrame(data)
+        st.dataframe(audit[[c for c in cols if c in audit]], hide_index=True, width="stretch")
     else:
         st.error(f"HTTP {code}: {data.get('error') if isinstance(data, dict) else data}")

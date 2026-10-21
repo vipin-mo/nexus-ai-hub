@@ -77,6 +77,7 @@ class Settings:
     server_host: str
     server_port: int
     max_concurrency: int
+    queue_wait_s: float
     request_timeout_s: float
     internal_token: str
 
@@ -119,7 +120,7 @@ def get_settings() -> Settings:
         data_dir=_resolve(_env_str("NEXUS_DATA_DIR", paths.get("data_dir", "data"))),
         artifacts_dir=artifacts_dir,
         ollama_base_url=_env_str("OLLAMA_BASE_URL", llm.get("ollama_base_url", "http://localhost:11434")),
-        local_model=_env_str("NEXUS_LOCAL_MODEL", llm.get("local_model", "llama3:8b")),
+        local_model=_env_str("NEXUS_LOCAL_MODEL", llm.get("local_model", "qwen2.5:3b")),
         reasoner_provider=provider,
         cloud_routes=_csv(_env_str("NEXUS_CLOUD_ROUTES",
                                    ",".join(reasoner.get("cloud_routes", ["COMPLEX_REASONING"])))),
@@ -148,6 +149,7 @@ def get_settings() -> Settings:
         server_port=int(_env_str("NEXUS_SERVER_PORT", str(server.get("port", 8765)))),
         max_concurrency=int(_env_str("NEXUS_MAX_CONCURRENCY", str(server.get("max_concurrency", 8)))),
         request_timeout_s=float(server.get("request_timeout_s", 120)),
+        queue_wait_s=float(server.get("queue_wait_s", 10)),
         internal_token=_env_str("NEXUS_INTERNAL_TOKEN", server.get("internal_token", "")),
         security_llm_scan=_env_bool("NEXUS_SECURITY_LLM_SCAN", bool(security.get("llm_scan", True))),
         security_fail_closed=bool(security.get("fail_closed", True)),

@@ -75,7 +75,7 @@ class SpendTracker:
 
     def check(self) -> None:
         if self._spent >= self.cap_usd:
-            raise BudgetExceeded(f"Cloud spend cap of ${self.cap_usd:.2f} reached (spent ${self._spent:.4f})")
+            raise BudgetExceeded(f"Cloud spend cap of ${self.cap_usd:.4f} reached (spent ${self._spent:.4f})")
 
     def add(self, amount: float) -> None:
         with self._lock:
@@ -189,7 +189,8 @@ class FakeChat:
     def complete(self, system: str, user: str, *, max_tokens: int | None = None,
                  json_mode: bool = False) -> LLMResult:
         if json_mode:
-            text = json.dumps({"verdict": "safe", "intent": "COMPLEX_REASONING", "reason": "fake"})
+            text = json.dumps({"is_question_about_rules": True, "is_attack": False, "category": "none",
+                               "intent": "COMPLEX_REASONING"})
         else:
             block = re.search(r"<sources>\s*\[([^\]]+)\]\s*(.*?)(?:\n\n\[|</sources>)", user, flags=re.S)
             if block:

@@ -4,8 +4,9 @@
   so only the gateway - which has already authenticated and authorised the caller -
   can submit work. ``principal`` and ``role`` in the payload are therefore trusted.
 * ``GET /healthz`` answers plain HTTP for container health checks.
-* At most ``max_concurrency`` agent runs execute at once; extra requests get an
-  immediate ``BUSY`` reply instead of queueing without bound.
+* At most ``max_concurrency`` agent runs execute at once. A request that finds every slot busy
+  waits up to ``queue_wait_s`` for one (a bounded queue) and then gets a ``BUSY`` reply, so a
+  burst of short requests is absorbed while a sustained overload still fails fast.
 * Each run has a deadline (``request_timeout_s``).
 
 Run: ``python -m ai_orchestrator.server``
@@ -17,6 +18,7 @@ import hmac
 import json
 import logging
 import re
+import time
 from concurrent.futures import ThreadPoolExecutor
 from http import HTTPStatus
 
@@ -69,6 +71,9 @@ class AgentServer:
 
     def process_request(self, connection: ServerConnection, request):
         if request.path == "/healthz":
+            problem = dependency_problem(self.settings)
+            if problem:
+                return connection.respond(HTTPStatus.SERVICE_UNAVAILABLE, problem + "\n")
             return connection.respond(HTTPStatus.OK, "ok\n")
         token = self.settings.internal_token
         if token:
@@ -90,10 +95,12 @@ class AgentServer:
             request = validate(json.loads(message))
         except (json.JSONDecodeError, PayloadError) as exc:
             return {"status": "INVALID_REQUEST", "error": str(exc)}
-        if self.slots.locked():
+        try:
+            await asyncio.wait_for(self.slots.acquire(), timeout=self.settings.queue_wait_s)
+        except TimeoutError:
             return {"status": "BUSY", "request_id": request["request_id"],
                     "error": "orchestrator at capacity, retry later"}
-        async with self.slots:
+        try:
             loop = asyncio.get_running_loop()
             query = request.pop("query")
             future = loop.run_in_executor(self.pool, lambda: run_agent(query, **request))
@@ -104,6 +111,31 @@ class AgentServer:
                 # the server stays responsive. Timeouts are visible in the gateway audit log.
                 return {"status": "TIMEOUT", "request_id": request["request_id"],
                         "error": f"no answer within {self.settings.request_timeout_s:.0f}s"}
+        finally:
+            self.slots.release()
+
+
+_dependency_cache: dict[str, tuple[float, str | None]] = {}
+
+
+def dependency_problem(settings) -> str | None:
+    """Unhealthy if the local model server is unreachable: with a fail-closed guard every request would
+    be blocked, so the container should report it instead of looking healthy. Cached for 10 s."""
+    if settings.reasoner_provider == "fake":
+        return None
+    cached = _dependency_cache.get("ollama")
+    if cached and time.monotonic() - cached[0] < 10:
+        return cached[1]
+    import requests
+
+    try:
+        requests.get(settings.ollama_base_url.rstrip("/") + "/api/tags", timeout=1.5).raise_for_status()
+        problem = None
+    except requests.RequestException as exc:
+        problem = f"ollama unreachable at {settings.ollama_base_url}: {exc.__class__.__name__}"
+        log.error("Health check: %s", problem)
+    _dependency_cache["ollama"] = (time.monotonic(), problem)
+    return problem
 
 
 def warm_up() -> None:

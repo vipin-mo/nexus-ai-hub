@@ -134,3 +134,33 @@ def test_policy_answers_mentioning_admin_tools_are_not_altered():
 
     text = "Analysts cannot run REFUND_DISPATCH; it requires ADMIN."
     assert enforce_tool_rbac(text, "ADMIN", []) == text
+
+
+def test_server_queues_briefly_then_replies_busy(settings_override, monkeypatch):
+    import time as _time
+
+    from ai_orchestrator import server as srv
+
+    settings_override(NEXUS_MAX_CONCURRENCY="1")
+    monkeypatch.setattr(srv, "run_agent", lambda query, **kw: (_time.sleep(0.3), {"status": "OK"})[1])
+    message = json.dumps({"query": "q", "principal": "gw", "role": "ANALYST"})
+
+    async def scenario(queue_wait):
+        server = AgentServer()
+        server.settings = server.settings.__class__(**{**server.settings.__dict__, "queue_wait_s": queue_wait})
+        return await asyncio.gather(server._serve_one(message), server._serve_one(message))
+
+    assert [r["status"] for r in asyncio.run(scenario(2.0))] == ["OK", "OK"]       # second request waited
+    assert sorted(r["status"] for r in asyncio.run(scenario(0.05))) == ["BUSY", "OK"]
+
+
+def test_health_reports_unreachable_model_server(settings_override):
+    from ai_orchestrator import server as srv
+
+    settings_override(NEXUS_REASONER_PROVIDER="ollama", OLLAMA_BASE_URL="http://127.0.0.1:9")
+    srv._dependency_cache.clear()
+    problem = srv.dependency_problem(get_settings())
+    assert problem and "ollama unreachable" in problem
+    settings_override(NEXUS_REASONER_PROVIDER="fake")
+    srv._dependency_cache.clear()
+    assert srv.dependency_problem(get_settings()) is None

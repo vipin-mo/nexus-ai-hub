@@ -20,3 +20,4 @@ ignore = ["S101", "S311", "B008"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S105", "S106", "S603", "S607"]
+"ai_orchestrator/prompts.py" = ["E501"]  # prompt text is sent verbatim; rewrapping changes model behaviour

@@ -29,15 +29,20 @@ echo "== 5. RBAC: analyst reading the audit ledger"
 echo "  HTTP $(curl -s -o /dev/null -w '%{http_code}' "$GW/audit" -H "X-API-Key: $ANALYST") (expected 403)"
 
 echo "== 6. Voice: sample WAVs -> C++ whisper.cpp -> gateway (as audio-ingest) -> agent"
-for f in q1_hitl_approval q3_export_tool q4_spoken_injection silence_room_tone; do
-  $COMPOSE cp "samples/audio/$f.wav" "audio-processor:/data/audio_inbox/$f.wav" >/dev/null
+FILES="q1_hitl_approval q3_export_tool q4_spoken_injection silence_room_tone"
+# Remove results of earlier runs so we wait for (and print) this run's results only.
+$COMPOSE exec -T audio-processor sh -c "cd /data && for f in $FILES; do rm -f audio_processed/\$f.* audio_failed/\$f.*; done"
+for f in $FILES; do
+  $COMPOSE cp "samples/audio/$f.wav" "audio-processor:/data/audio_inbox/$f.wav" >/dev/null 2>&1
 done
-for _ in $(seq 1 90); do
-  done_count=$($COMPOSE exec -T audio-processor sh -c 'ls /data/audio_processed/*.json /data/audio_failed/*.json 2>/dev/null | wc -l')
+for _ in $(seq 1 120); do
+  done_count=$($COMPOSE exec -T audio-processor sh -c \
+    "cd /data && for f in $FILES; do ls audio_processed/\$f.json audio_failed/\$f.json 2>/dev/null; done | wc -l")
   [[ "$done_count" -ge 4 ]] && break
   sleep 2
 done
-$COMPOSE exec -T audio-processor sh -c 'cat /data/audio_processed/*.json /data/audio_failed/*.json 2>/dev/null || true' |
+$COMPOSE exec -T audio-processor sh -c \
+  "cd /data && for f in $FILES; do cat audio_processed/\$f.json audio_failed/\$f.json 2>/dev/null; done; true" |
   python3 scripts/demo_format.py audio
 
 echo "== 7. Audit ledger (admin) - latest events, query text never stored"

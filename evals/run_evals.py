@@ -113,10 +113,18 @@ def eval_routing() -> tuple[dict, list[dict]]:
 
 
 def eval_security() -> tuple[dict, list[dict]]:
+    """Dev set (used while designing rules and prompts) and a held-out set written afterwards."""
+    dev_metrics, dev_rows = _security_set("security_cases.jsonl")
+    hold_metrics, hold_rows = _security_set("security_holdout.jsonl")
+    metrics = {**dev_metrics, **{f"holdout_{k}": v for k, v in hold_metrics.items() if k != "policy_version"}}
+    return metrics, dev_rows + [{**r, "set": "holdout"} for r in hold_rows]
+
+
+def _security_set(name: str) -> tuple[dict, list[dict]]:
     from ai_orchestrator.security import get_guard
 
     guard = get_guard()
-    cases = jsonl("security_cases.jsonl")
+    cases = jsonl(name)
     counts = {"rules": [0, 0, 0, 0], "full": [0, 0, 0, 0]}  # tp, fn, fp, tn
     latencies, rows = [], []
     for c in cases:
@@ -224,6 +232,7 @@ def eval_answers(judge: str, workers: int) -> tuple[dict, list[dict]]:
         return outputs["status"] == "BLOCKED" or bool(refusal.search(outputs["answer"]))
 
     scorers = [fact_recall, cites_expected_source, retrieved_expected_source, refuses_unanswerable]
+    judge_costs: list[float] = []  # list.append is thread-safe; scorers run in parallel
     if judge != "none":
         judge_model = _judge_model(judge)
 
@@ -234,6 +243,7 @@ def eval_answers(judge: str, workers: int) -> tuple[dict, list[dict]]:
                    f"<answer>{outputs['answer']}</answer>"
             try:
                 reply = judge_model.complete(JUDGE_PROMPT, user, max_tokens=120, json_mode=True)
+                judge_costs.append(reply.cost_usd)
                 result = parse_json_object(reply.text)
                 score = float(result["score"])
             except Exception as exc:  # judge failures are reported, not fatal
@@ -263,7 +273,8 @@ def eval_answers(judge: str, workers: int) -> tuple[dict, list[dict]]:
                      "sources": out.get("sources"), **{k: row[k] for k in row.index if k.endswith("/value")}})
     metrics = {k.replace("/mean", ""): round(float(v), 4) for k, v in result.metrics.items() if k.endswith("/mean")}
     metrics.update({"latency_p50_ms": pct(latencies, 0.5), "latency_p95_ms": pct(latencies, 0.95),
-                    "total_cost_usd": round(cost, 6), "total_tokens": tokens, "wall_time_s": round(wall_s, 1),
+                    "total_cost_usd": round(cost, 6), "judge_cost_usd": round(sum(judge_costs), 6),
+                    "total_tokens": tokens, "wall_time_s": round(wall_s, 1),
                     "mlflow_run_id": result.run_id})
     return metrics, rows
 
@@ -275,7 +286,7 @@ def _judge_model(kind: str):
     s = get_settings()
     if kind == "anthropic":
         return AnthropicChat(s.anthropic_model, s, spend_tracker())
-    return OllamaChat(os.getenv("NEXUS_JUDGE_MODEL", "llama3:latest"), s)
+    return OllamaChat(os.getenv("NEXUS_JUDGE_MODEL", "llama3:8b"), s)
 
 
 SUITES = {"retrieval": eval_retrieval, "routing": eval_routing, "security": eval_security,
@@ -298,12 +309,22 @@ def check_gate(profile: str, results: dict) -> list[str]:
     return failures
 
 
+def _reachable(uri: str) -> bool:
+    import requests
+
+    try:
+        return requests.get(uri.rstrip("/") + "/health", timeout=2).ok
+    except requests.RequestException:
+        return False
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--profile", choices=sorted(PROFILES), default="offline")
     parser.add_argument("--suites", default="retrieval,routing,security,recommendation,answers")
     parser.add_argument("--judge", choices=["none", "ollama", "anthropic"], default="none")
-    parser.add_argument("--mlflow-uri", default=os.getenv("MLFLOW_TRACKING_URI", ""))
+    parser.add_argument("--mlflow-uri", default=None,
+                        help="tracking server; default: $MLFLOW_TRACKING_URI (ignored for --profile offline)")
     parser.add_argument("--workers", type=int, default=4, help="parallel answer-suite requests")
     parser.add_argument("--gate", action="store_true", help="exit 1 if any metric misses its threshold")
     parser.add_argument("--report", type=Path, default=None)
@@ -316,10 +337,13 @@ def main() -> int:
     os.environ["MLFLOW_DISABLE_AGENT_HINT"] = "1"
     # MLflow usage telemetry lazily imports modules from scorer threads and can deadlock.
     os.environ["MLFLOW_DISABLE_TELEMETRY"] = "true"
-    tmp = None
+    if args.mlflow_uri is None and args.profile != "offline":  # offline (CI) must not depend on a server
+        args.mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "")
+    if args.mlflow_uri and args.mlflow_uri.startswith("http") and not _reachable(args.mlflow_uri):
+        print(f"MLflow at {args.mlflow_uri} is unreachable; logging to a local store instead", file=sys.stderr)
+        args.mlflow_uri = ""
     if not args.mlflow_uri:
-        tmp = tempfile.mkdtemp(prefix="nexus-evals-")
-        args.mlflow_uri = f"sqlite:///{tmp}/mlflow.db"
+        args.mlflow_uri = f"sqlite:///{tempfile.mkdtemp(prefix='nexus-evals-')}/mlflow.db"
     os.environ["MLFLOW_TRACKING_URI"] = args.mlflow_uri
     os.environ["MLFLOW_EXPERIMENT_NAME"] = "nexus-evals"
     if args.profile == "offline" and not os.getenv("NEXUS_DATA_DIR"):

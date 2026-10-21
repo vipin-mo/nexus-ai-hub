@@ -9,9 +9,9 @@ paths:
 
 llm:
   ollama_base_url: http://localhost:11434   # OLLAMA_BASE_URL
-  # Models were chosen by measurement (evals/, BENCHMARKS.md). Needs ~8 GB for Ollama; on a low-RAM
-  # machine set both to qwen2.5:1.5b (faster, ~7% benign false positives in the security scan).
-  local_model: llama3:8b                    # NEXUS_LOCAL_MODEL - security scan + low-confidence routing
+  # Chosen by measurement (evals/, BENCHMARKS.md): one resident ~2 GB model keeps a 16 GB laptop from
+  # swapping models in and out of memory (llama3:8b as scanner was 6x slower end to end there).
+  local_model: qwen2.5:3b                   # NEXUS_LOCAL_MODEL - security scan + low-confidence routing
   reasoner:
     provider: ollama                        # NEXUS_REASONER_PROVIDER: ollama | anthropic | fake
     cloud_routes: [COMPLEX_REASONING]       # NEXUS_CLOUD_ROUTES - with provider=anthropic only these use Claude;
@@ -53,5 +53,6 @@ server:
   host: 0.0.0.0
   port: 8765
   max_concurrency: 8                        # NEXUS_MAX_CONCURRENCY
+  queue_wait_s: 10                          # wait this long for a free slot before replying BUSY
   request_timeout_s: 120                   # < gateway 135 s < C++ client 150 s
   internal_token: ""                        # NEXUS_INTERNAL_TOKEN - shared secret with the Java gateway

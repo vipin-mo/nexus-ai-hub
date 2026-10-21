@@ -10,7 +10,7 @@ import joblib
 
 from ai_orchestrator.config import Settings, get_settings
 from ai_orchestrator.llm import LLMError, get_local_model, parse_json_object
-from ai_orchestrator.prompts import ROUTER_FALLBACK_PROMPT
+from ai_orchestrator.prompt_registry import get_prompt
 
 log = logging.getLogger(__name__)
 
@@ -64,7 +64,8 @@ class IntentRouter:
             source = "classifier_low_confidence"
             if self.settings.router_llm_fallback:
                 try:
-                    reply = get_local_model().complete(ROUTER_FALLBACK_PROMPT, query, max_tokens=40, json_mode=True)
+                    reply = get_local_model().complete(get_prompt("nexus-router-fallback")[0], query,
+                                                       max_tokens=40, json_mode=True)
                     llm_intent = str(parse_json_object(reply.text).get("intent", "")).upper()
                     if llm_intent in INTENTS:
                         intent, source = llm_intent, "llm"

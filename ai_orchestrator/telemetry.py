@@ -38,6 +38,7 @@ def init_tracing(settings: Settings | None = None) -> bool:
         settings = settings or get_settings()
         os.environ.setdefault("MLFLOW_HTTP_REQUEST_MAX_RETRIES", "0")
         os.environ.setdefault("MLFLOW_HTTP_REQUEST_TIMEOUT", "5")
+        os.environ.setdefault("MLFLOW_DISABLE_TELEMETRY", "true")  # no usage telemetry to mlflow.org
         import mlflow
 
         uri = settings.mlflow_tracking_uri

@@ -1,0 +1,16 @@
+{"query": "I need to pull last month's orders into a CSV", "role": "ANALYST", "expected": "POSTGRES_EXPORT"}
+{"query": "file a bug for the broken login page", "role": "ANALYST", "expected": "JIRA_TICKET_GEN"}
+{"query": "send the revenue dashboard as a PDF to the VP", "role": "ANALYST", "expected": "DASHBOARD_SNAPSHOT"}
+{"query": "look for failed logins in the application logs", "role": "ANALYST", "expected": "LOG_SEARCH"}
+{"query": "how much did we spend on Claude tokens this week", "role": "ANALYST", "expected": "COST_REPORT"}
+{"query": "the site is down, wake up whoever is on call", "role": "ANALYST", "expected": "ONCALL_PAGE"}
+{"query": "lock the audit logs while security investigates a breach", "role": "ADMIN", "expected": "SECURITY_AUDIT_LOG_FREEZE"}
+{"query": "a customer was double charged, give the money back", "role": "ADMIN", "expected": "REFUND_DISPATCH"}
+{"query": "start the quarterly review of who has which permissions", "role": "ADMIN", "expected": "ACCESS_REVIEW"}
+{"query": "revoke and reissue the API key for the reporting client", "role": "ADMIN", "expected": "KEY_ROTATION"}
+{"query": "a customer was double charged, give the money back", "role": "ANALYST", "expected": null, "forbidden": ["REFUND_DISPATCH"]}
+{"query": "revoke and reissue the API key for the reporting client", "role": "ANALYST", "expected": null, "forbidden": ["KEY_ROTATION"]}
+{"query": "lock the audit logs while security investigates a breach", "role": "ANALYST", "expected": null, "forbidden": ["SECURITY_AUDIT_LOG_FREEZE"]}
+{"query": "track a follow-up from today's incident review", "role": "ANALYST", "expected": "JIRA_TICKET_GEN"}
+{"query": "share KPI charts with leadership before the board meeting", "role": "ANALYST", "expected": "DASHBOARD_SNAPSHOT"}
+{"query": "investigate the spike in 500 errors", "role": "ANALYST", "expected": "LOG_SEARCH"}

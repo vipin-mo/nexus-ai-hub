@@ -29,6 +29,10 @@ def _env_bool(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _csv(value: str) -> tuple[str, ...]:
+    return tuple(item.strip().upper() for item in value.split(",") if item.strip())
+
+
 def _resolve(path: str) -> Path:
     p = Path(path)
     return p if p.is_absolute() else PROJECT_ROOT / p
@@ -115,10 +119,11 @@ def get_settings() -> Settings:
         data_dir=_resolve(_env_str("NEXUS_DATA_DIR", paths.get("data_dir", "data"))),
         artifacts_dir=artifacts_dir,
         ollama_base_url=_env_str("OLLAMA_BASE_URL", llm.get("ollama_base_url", "http://localhost:11434")),
-        local_model=_env_str("NEXUS_LOCAL_MODEL", llm.get("local_model", "qwen2.5:1.5b")),
+        local_model=_env_str("NEXUS_LOCAL_MODEL", llm.get("local_model", "llama3:8b")),
         reasoner_provider=provider,
-        cloud_routes=tuple(reasoner.get("cloud_routes", ["COMPLEX_REASONING"])),
-        reasoner_ollama_model=_env_str("NEXUS_REASONER_OLLAMA_MODEL", reasoner.get("ollama_model", "qwen2.5:1.5b")),
+        cloud_routes=_csv(_env_str("NEXUS_CLOUD_ROUTES",
+                                   ",".join(reasoner.get("cloud_routes", ["COMPLEX_REASONING"])))),
+        reasoner_ollama_model=_env_str("NEXUS_REASONER_OLLAMA_MODEL", reasoner.get("ollama_model", "qwen2.5:3b")),
         anthropic_model=_env_str("NEXUS_ANTHROPIC_MODEL", reasoner.get("anthropic_model", "claude-haiku-4-5")),
         max_output_tokens=int(reasoner.get("max_output_tokens", 700)),
         llm_timeout_s=float(reasoner.get("timeout_s", 90)),
@@ -127,7 +132,7 @@ def get_settings() -> Settings:
         spend_cap_usd=float(_env_str("NEXUS_SPEND_CAP_USD", str(llm.get("spend_cap_usd_per_process", 2.0)))),
         router_model_path=artifacts_dir / router.get("model_file", "intent_router.joblib"),
         router_model_uri=_env_str("NEXUS_ROUTER_MODEL_URI", router.get("model_uri", "")),
-        router_confidence_threshold=float(router.get("confidence_threshold", 0.65)),
+        router_confidence_threshold=float(router.get("confidence_threshold", 0.45)),
         router_llm_fallback=_env_bool("NEXUS_ROUTER_LLM_FALLBACK", bool(router.get("llm_fallback", True))),
         embeddings=embeddings,
         embed_model=retrieval.get("embed_model", "nomic-embed-text"),
@@ -140,7 +145,7 @@ def get_settings() -> Settings:
         mlflow_tracking_uri=_env_str("MLFLOW_TRACKING_URI", telemetry.get("mlflow_tracking_uri", "")),
         mlflow_experiment=_env_str("MLFLOW_EXPERIMENT_NAME", telemetry.get("mlflow_experiment", "nexus-agent")),
         server_host=server.get("host", "0.0.0.0"),  # noqa: S104 - container port, not internet-facing
-        server_port=int(server.get("port", 8765)),
+        server_port=int(_env_str("NEXUS_SERVER_PORT", str(server.get("port", 8765)))),
         max_concurrency=int(_env_str("NEXUS_MAX_CONCURRENCY", str(server.get("max_concurrency", 8)))),
         request_timeout_s=float(server.get("request_timeout_s", 150)),
         internal_token=_env_str("NEXUS_INTERNAL_TOKEN", server.get("internal_token", "")),

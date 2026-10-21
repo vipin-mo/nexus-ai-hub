@@ -1,6 +1,6 @@
 """Build the synthetic intent-routing training set (templates x slot fillers).
 
-The hand-written ``challenge.csv`` is deliberately NOT generated here: it uses
+The hand-written ``evals/datasets/routing_challenge.csv`` is deliberately NOT generated here: it uses
 different phrasing so its score shows how the router generalises beyond the
 templates. Run: ``python -m ai_orchestrator.training.build_intent_dataset``.
 """

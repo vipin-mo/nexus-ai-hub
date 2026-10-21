@@ -9,12 +9,14 @@ paths:
 
 llm:
   ollama_base_url: http://localhost:11434   # OLLAMA_BASE_URL
-  local_model: qwen2.5:1.5b                 # NEXUS_LOCAL_MODEL - security scan + low-confidence routing
+  # Models were chosen by measurement (evals/, BENCHMARKS.md). Needs ~8 GB for Ollama; on a low-RAM
+  # machine set both to qwen2.5:1.5b (faster, ~7% benign false positives in the security scan).
+  local_model: llama3:8b                    # NEXUS_LOCAL_MODEL - security scan + low-confidence routing
   reasoner:
     provider: ollama                        # NEXUS_REASONER_PROVIDER: ollama | anthropic | fake
-    cloud_routes: [COMPLEX_REASONING]       # with provider=anthropic, only these intents use Claude;
+    cloud_routes: [COMPLEX_REASONING]       # NEXUS_CLOUD_ROUTES - with provider=anthropic only these use Claude;
                                             # knowledge lookups and tool recommendations stay local
-    ollama_model: qwen2.5:1.5b              # NEXUS_REASONER_OLLAMA_MODEL
+    ollama_model: qwen2.5:3b                # NEXUS_REASONER_OLLAMA_MODEL
     anthropic_model: claude-haiku-4-5       # NEXUS_ANTHROPIC_MODEL
     max_output_tokens: 700
     timeout_s: 90
@@ -28,7 +30,7 @@ llm:
 router:
   model_file: intent_router.joblib          # inside artifacts_dir
   model_uri: ""                             # NEXUS_ROUTER_MODEL_URI, e.g. models:/nexus-intent-router@champion
-  confidence_threshold: 0.65
+  confidence_threshold: 0.45                # chosen by sweep, see BENCHMARKS.md
   llm_fallback: true                        # NEXUS_ROUTER_LLM_FALLBACK
 
 retrieval:

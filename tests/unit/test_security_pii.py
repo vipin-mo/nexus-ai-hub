@@ -11,7 +11,7 @@ from ai_orchestrator.pii import PIIRedactor, luhn_ok
 from ai_orchestrator.security import SecurityGuard, normalised_views
 
 CASES = [json.loads(line) for line in
-         (Path(__file__).parents[1] / "eval" / "datasets" / "security_cases.jsonl").read_text().splitlines()]
+         (Path(__file__).parents[2] / "evals" / "datasets" / "security_cases.jsonl").read_text().splitlines()]
 
 
 @pytest.fixture(scope="module")

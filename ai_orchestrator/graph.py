@@ -33,7 +33,8 @@ from ai_orchestrator.knowledge.rag import get_retriever
 from ai_orchestrator.llm import LLMError, get_fallback_reasoner, get_reasoner
 from ai_orchestrator.memory import get_memory, session_key
 from ai_orchestrator.pii import get_redactor
-from ai_orchestrator.prompts import PROMPT_VERSION, REASONER_SYSTEM_PROMPT, build_reasoner_input
+from ai_orchestrator.prompt_registry import get_prompt
+from ai_orchestrator.prompts import build_reasoner_input
 from ai_orchestrator.recommender import get_recommender
 from ai_orchestrator.router import get_router
 from ai_orchestrator.security import get_guard
@@ -59,6 +60,7 @@ class AgentState(TypedDict, total=False):
     answer: str
     llm: dict
     degraded: bool
+    prompt_version: str
     timings_ms: Annotated[dict[str, float], operator.or_]
 
 
@@ -118,20 +120,21 @@ def reason_node(state: AgentState) -> dict:
                                       state.get("recommendations", []))
     degraded = False
     primary = get_reasoner(state["route"]["intent"])
+    system_prompt, prompt_version = get_prompt("nexus-reasoner-system")
     try:
-        result = primary.complete(REASONER_SYSTEM_PROMPT, user_input)
+        result = primary.complete(system_prompt, user_input)
     except LLMError as exc:
         fallback = get_fallback_reasoner(primary)
         if fallback is None:
             raise
         log.warning("Primary reasoner failed (%s); answering with local fallback", exc)
-        result = fallback.complete(REASONER_SYSTEM_PROMPT, user_input)
+        result = fallback.complete(system_prompt, user_input)
         degraded = True
     # Output filter: models can echo identifiers from documents or history.
     answer = get_redactor().redact(result.text).text
     memory.append(key, state["clean_query"], answer,
                   {"request_id": state["request_id"], "route": state.get("route", {}).get("intent")})
-    return {"answer": answer, "llm": result.to_dict(), "degraded": degraded,
+    return {"answer": answer, "llm": result.to_dict(), "degraded": degraded, "prompt_version": prompt_version,
             "history_turns": len(history), "timings_ms": {"reason": _elapsed(started)}}
 
 
@@ -176,14 +179,17 @@ def _invoke(state: AgentState) -> tuple[dict, str | None]:
     mlflow.update_current_trace(
         tags={"route": final.get("route", {}).get("intent", "BLOCKED"),
               "provider": final.get("llm", {}).get("provider", "none"),
-              "source": state["source"], "prompt_version": PROMPT_VERSION},
+              "source": state["source"], "prompt_version": final.get("prompt_version", "-")},
         session_id=session_key(state["principal"], state["session_id"]), user=state["principal"])
     return final, span.trace_id
 
 
 def run_agent(query: str, *, principal: str = "local", role: str = "ANALYST", session_id: str | None = None,
-              user_id: str | None = None, source: str = "text", request_id: str | None = None) -> dict:
-    """Run one request through the graph and return the response contract used by every client."""
+              user_id: str | None = None, source: str = "text", request_id: str | None = None,
+              include_context: bool = False) -> dict:
+    """Run one request through the graph and return the response contract used by every client.
+
+    ``include_context`` adds the retrieved chunk texts (used by the evaluation judge)."""
     init_tracing()
     started = time.perf_counter()
     state: AgentState = {
@@ -218,9 +224,11 @@ def run_agent(query: str, *, principal: str = "local", role: str = "ANALYST", se
         "latency_ms": _elapsed(started),
         "timings_ms": final.get("timings_ms", {}),
         "trace_id": trace_id,
-        "prompt_version": PROMPT_VERSION,
+        "prompt_version": final.get("prompt_version"),
         "error": error,
     }
+    if include_context:
+        response["context"] = [{"source": c["source"], "text": c["text"]} for c in final.get("sources", [])]
     get_event_log().write({
         "request_id": response["request_id"], "principal": principal, "role": role, "source": source,
         "status": status, "query": final.get("clean_query", query)[:300],
@@ -231,7 +239,7 @@ def run_agent(query: str, *, principal: str = "local", role: str = "ANALYST", se
         **{f"llm_{k}": v for k, v in response["usage"].items()},
         "n_sources": len(response["sources"]), "degraded": response["degraded"],
         "latency_ms": response["latency_ms"], "timings_ms": response["timings_ms"],
-        "trace_id": trace_id, "prompt_version": PROMPT_VERSION, "environment": get_settings().environment,
+        "trace_id": trace_id, "prompt_version": response["prompt_version"], "environment": get_settings().environment,
     })
     return response
 

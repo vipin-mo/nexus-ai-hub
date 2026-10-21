@@ -25,7 +25,7 @@ from functools import lru_cache
 
 from ai_orchestrator.config import Settings, get_settings, load_yaml
 from ai_orchestrator.llm import LLMError, get_local_model, parse_json_object
-from ai_orchestrator.prompts import SECURITY_SCAN_PROMPT
+from ai_orchestrator.prompt_registry import get_prompt
 
 log = logging.getLogger(__name__)
 
@@ -97,7 +97,8 @@ class SecurityGuard:
     def check_llm(self, text: str) -> Verdict:
         started = time.perf_counter()
         try:
-            reply = get_local_model().complete(SECURITY_SCAN_PROMPT, f"<user_input>\n{text}\n</user_input>",
+            prompt = get_prompt("nexus-security-scan")[0]
+            reply = get_local_model().complete(prompt, f"<user_input>\n{text}\n</user_input>",
                                                max_tokens=80, json_mode=True)
             result = parse_json_object(reply.text)
             verdict = str(result.get("verdict", "")).lower()

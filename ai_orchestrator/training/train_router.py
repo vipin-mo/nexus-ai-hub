@@ -31,6 +31,7 @@ from ai_orchestrator.config import get_settings
 from ai_orchestrator.training.build_intent_dataset import build
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
+CHALLENGE_CSV = Path(__file__).resolve().parents[2] / "evals" / "datasets" / "routing_challenge.csv"
 LABELS = ["RAG_KNOWLEDGE", "RECOMMENDATION", "COMPLEX_REASONING"]
 REGISTERED_NAME = "nexus-intent-router"
 PARAMS = {"word_ngrams": "1-2", "char_ngrams": "3-5", "C": 4.0, "class_weight": "balanced",
@@ -61,7 +62,7 @@ def train(output_path: Path, mlflow_uri: str | None = None) -> dict:
     texts, labels = zip(*build(), strict=True)
     x_train, x_test, y_train, y_test = train_test_split(
         list(texts), list(labels), test_size=PARAMS["test_size"], random_state=PARAMS["seed"], stratify=labels)
-    x_chal, y_chal = _read_csv(DATA_DIR / "challenge.csv")
+    x_chal, y_chal = _read_csv(CHALLENGE_CSV)
 
     pipe = make_pipeline().fit(x_train, y_train)
     pred_test, pred_chal = pipe.predict(x_test), pipe.predict(x_chal)
@@ -96,6 +97,7 @@ def train(output_path: Path, mlflow_uri: str | None = None) -> dict:
 def _log_to_mlflow(uri, pipe, metrics, report, matrix, misses, examples) -> dict:
     import mlflow
     from mlflow import MlflowClient
+    from mlflow.models import infer_signature
 
     mlflow.set_tracking_uri(uri)
     mlflow.set_experiment("nexus-intent-router")
@@ -105,7 +107,8 @@ def _log_to_mlflow(uri, pipe, metrics, report, matrix, misses, examples) -> dict
         mlflow.log_dict(report, "challenge_classification_report.json")
         mlflow.log_dict({"labels": LABELS, "matrix": matrix}, "challenge_confusion_matrix.json")
         mlflow.log_dict({"misses": misses}, "challenge_misses.json")
-        info = mlflow.sklearn.log_model(pipe, name="model", input_example=examples,
+        signature = infer_signature(list(examples), list(pipe.predict(examples)))
+        info = mlflow.sklearn.log_model(pipe, name="model", signature=signature,
                                         registered_model_name=REGISTERED_NAME)
     client = MlflowClient()
     version = str(info.registered_model_version)

@@ -1,0 +1,37 @@
+# minikube run, 2026-10-27 (M-series MacBook, Ollama on the host via host.minikube.internal)
+# kubectl apply -k local_infra/k8s; first query is cold (models loading).
+
+$ minikube version
+v1.39.0
+$ kubectl version (server)
+v1.37.0
+
+$ kubectl -n nexus get pods,svc
+NAME                                   READY   STATUS    RESTARTS   AGE
+pod/audio-processor-5c5959b6fd-zv9qg   1/1     Running   0          49s
+pod/dashboard-677c6b85c4-bn5qn         1/1     Running   0          49s
+pod/gateway-5cf4779f69-2wxcn           1/1     Running   0          49s
+pod/mlflow-758dc77c84-8zlzs            1/1     Running   0          49s
+pod/mongodb-0                          1/1     Running   0          49s
+pod/orchestrator-68c974fcc6-nqvqx      1/1     Running   0          49s
+pod/postgres-0                         1/1     Running   0          49s
+
+NAME                   TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+service/dashboard      NodePort    10.101.165.98    <none>        8501:30501/TCP   49s
+service/gateway        NodePort    10.111.181.250   <none>        8080:30080/TCP   49s
+service/mlflow         ClusterIP   10.101.242.143   <none>        5000/TCP         49s
+service/mongodb        ClusterIP   None             <none>        27017/TCP        49s
+service/orchestrator   ClusterIP   10.99.75.11      <none>        8765/TCP         49s
+service/postgres       ClusterIP   None             <none>        5432/TCP         49s
+
+$ POST /api/v1/query (analyst key, via kubectl port-forward svc/gateway)
+  status=OK route=RAG_KNOWLEDGE/classifier model=qwen2.5:3b tokens=930+53 pii={} latency=6992ms
+  answer: A named engineer must approve any destructive database write initiated by an autonomous LLM agent, which requires a Human-In-The-Loop (HITL) approval. This approval must be signed by the engineer and expires after 4 hours. [security_policy.md]
+
+$ GET /api/v1/audit as ANALYST (expect 403)
+HTTP 403
+
+$ GET /api/v1/audit?limit=3 as ADMIN
+  2026-10-27T21:31:00 DENIED    analyst-ui     FORBIDDEN        route=None sha256=None
+  2026-10-27T21:31:00 COMPLETED analyst-ui     OK               route=RAG_KNOWLEDGE sha256=None
+  2026-10-27T21:30:53 RECEIVED  analyst-ui     RECEIVED         route=None sha256=8451a0917da9

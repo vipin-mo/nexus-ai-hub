@@ -10,7 +10,7 @@ paths:
 llm:
   ollama_base_url: http://localhost:11434   # OLLAMA_BASE_URL
   # Chosen by measurement (evals/, BENCHMARKS.md): one resident ~2 GB model keeps a 16 GB laptop from
-  # swapping models in and out of memory (llama3:8b as scanner was 6x slower end to end there).
+  # swapping models in and out of memory (llama3:8b as scanner: p50 7.6 s vs 1.8 s through the gateway).
   local_model: qwen2.5:3b                   # NEXUS_LOCAL_MODEL - security scan + low-confidence routing
   reasoner:
     provider: ollama                        # NEXUS_REASONER_PROVIDER: ollama | anthropic | fake

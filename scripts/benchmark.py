@@ -67,6 +67,9 @@ def overhead(gateway: str, key: str, total: int) -> list[dict]:
 
 
 def answers(gateway: str, key: str) -> dict:
+    # Warm-up request (excluded): loads the models so the first measured request is not a cold start.
+    requests.post(f"{gateway}/api/v1/query", json={"query": "What is the AI budget?"}, headers={"X-API-Key": key},
+                  timeout=200)
     rows = []
     for q in QUESTIONS:
         started = time.perf_counter()
@@ -99,6 +102,7 @@ def main() -> None:
     parser.add_argument("--env-file", type=Path, default=ROOT / ".env")
     parser.add_argument("--only", default="overhead,answers,stt")
     parser.add_argument("--requests", type=int, default=400)
+    parser.add_argument("--label", default="", help="store results as answers_<label> (compare configurations)")
     args = parser.parse_args()
     which = set(args.only.split(","))
     report = {"created_at": datetime.now(UTC).isoformat(timespec="seconds"),
@@ -111,8 +115,9 @@ def main() -> None:
             report["overhead"] = overhead(args.gateway, key, args.requests)
             print("overhead:", json.dumps(report["overhead"], indent=1))
         if "answers" in which:
-            report["answers"] = answers(args.gateway, key)
-            print("answers:", json.dumps({k: v for k, v in report["answers"].items() if k != "rows"}, indent=1))
+            name = f"answers_{args.label}" if args.label else "answers"
+            report[name] = answers(args.gateway, key)
+            print(f"{name}:", json.dumps({k: v for k, v in report[name].items() if k != "rows"}, indent=1))
     if "stt" in which:
         report["stt"] = stt()
         print("stt:", json.dumps(report["stt"], indent=1))

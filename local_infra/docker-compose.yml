@@ -4,6 +4,8 @@
 #
 #   docker compose --env-file .env -f local_infra/docker-compose.yml up -d --build
 #   docker compose --env-file .env -f local_infra/docker-compose.yml --profile batch run --rm pipeline
+#
+# Host ports can be changed if another project uses them, e.g. NEXUS_DASHBOARD_PORT=8502 make up
 name: nexus
 
 services:
@@ -13,7 +15,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-nexus_admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-nexus_operational}
-    ports: ["127.0.0.1:5432:5432"]
+    ports: ["127.0.0.1:${NEXUS_POSTGRES_PORT:-5432}:5432"]
     volumes: [postgres_data:/var/lib/postgresql/data]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
@@ -27,7 +29,7 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-nexus_admin}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?set MONGO_PASSWORD in .env}
-    ports: ["127.0.0.1:27017:27017"]
+    ports: ["127.0.0.1:${NEXUS_MONGO_PORT:-27017}:27017"]
     volumes: [mongo_data:/data/db]
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping: 1}).ok"]
@@ -42,7 +44,7 @@ services:
       mlflow server --host 0.0.0.0 --port 5000
       --backend-store-uri sqlite:////mlflow/mlflow.db --artifacts-destination /mlflow/artifacts --serve-artifacts
       --allowed-hosts mlflow,mlflow:5000,localhost,localhost:5001,127.0.0.1,127.0.0.1:5001
-    ports: ["127.0.0.1:5001:5000"]
+    ports: ["127.0.0.1:${NEXUS_MLFLOW_PORT:-5001}:5000"]
     volumes: [mlflow_data:/mlflow]
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health', timeout=2)"]
@@ -58,6 +60,7 @@ services:
     environment:
       NEXUS_INTERNAL_TOKEN: ${NEXUS_INTERNAL_TOKEN:?set NEXUS_INTERNAL_TOKEN in .env}
       NEXUS_REASONER_PROVIDER: ${NEXUS_REASONER_PROVIDER:-ollama}
+      NEXUS_LOCAL_MODEL: ${NEXUS_LOCAL_MODEL:-qwen2.5:3b}        # security scan + routing fallback
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       NEXUS_SPEND_CAP_USD: ${NEXUS_SPEND_CAP_USD:-2.00}
       MONGO_URI: mongodb://${MONGO_USER:-nexus_admin}:${MONGO_PASSWORD}@mongodb:27017/?authSource=admin
@@ -84,7 +87,7 @@ services:
       NEXUS_ADMIN_API_KEY: ${NEXUS_ADMIN_API_KEY:?set NEXUS_ADMIN_API_KEY in .env}
       NEXUS_ANALYST_API_KEY: ${NEXUS_ANALYST_API_KEY:?set NEXUS_ANALYST_API_KEY in .env}
       NEXUS_INGEST_API_KEY: ${NEXUS_INGEST_API_KEY:?set NEXUS_INGEST_API_KEY in .env}
-    ports: ["127.0.0.1:8080:8080"]
+    ports: ["127.0.0.1:${NEXUS_GATEWAY_PORT:-8080}:8080"]
     depends_on:
       postgres: {condition: service_healthy}
       orchestrator: {condition: service_healthy}
@@ -114,7 +117,7 @@ services:
       NEXUS_GATEWAY_URL: http://gateway:8080
       MLFLOW_TRACKING_URI: http://mlflow:5000
       NEXUS_REPORTS_DIR: /reports
-    ports: ["127.0.0.1:8501:8501"]
+    ports: ["127.0.0.1:${NEXUS_DASHBOARD_PORT:-8501}:8501"]
     volumes:
       - nexus_data:/data
       - ../reports:/reports:ro

@@ -90,6 +90,9 @@ http://localhost:8080. If another project already uses a port, override it, for 
 `NEXUS_POSTGRES_PORT`, `NEXUS_MONGO_PORT`). `make help` lists everything else: tests, evals, the
 pipeline, benchmarks and Kubernetes.
 
+AWS: one EC2 instance with Terraform, no inbound ports, reached through Session Manager. See
+[deploy/aws](deploy/aws/README.md).
+
 Kubernetes (minikube): `make up` once to build the images, then `minikube image load nexus/python:latest
 nexus/gateway:latest nexus/audio-processor:latest`, copy `local_infra/k8s/secrets.env.example` to
 `secrets.env`, fill it in and run `kubectl apply -k local_infra/k8s`. minikube keeps volume data under
@@ -159,6 +162,7 @@ core_engines/      C++ audio service, Java gateway
 data_pipeline/     log generator, Perl parser, Spark job, warehouse loader, benchmarks
 ui_analytics/      Streamlit dashboard
 local_infra/       docker-compose.yml, k8s/ (kustomize)
+deploy/aws/        Terraform for a single-instance AWS deployment
 scripts/           env generator, demo, benchmarks, WER, model download
 docs/images/       screenshots used in this README
 docs/evidence/     captured output (minikube run)

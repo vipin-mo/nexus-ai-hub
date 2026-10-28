@@ -13,7 +13,8 @@ your laptop ──Session Manager port forward──▶ EC2 t4g.xlarge (default 
 | Resource | Why |
 |---|---|
 | `t4g.xlarge` (4 vCPU, 16 GB, ARM) | Ollama plus seven services need about 10 GB; ARM matches the images built on Apple silicon and is cheaper per GB |
-| Security group with no inbound rules | Access is through Session Manager, so nothing is exposed; SSH is opt-in (`ssh_cidr`) |
+| Security group with no inbound rules | Access is through Session Manager, so nothing is exposed; SSH from one IP is opt-in (`ssh_cidr`, `ssh_public_key`) |
+| 4 GB swap file (`swap_gb`) | Headroom for image builds and model loading; needed on 8 GB instances |
 | IAM role with `AmazonSSMManagedInstanceCore` only | Lets Session Manager reach the instance; no other AWS permissions |
 | Encrypted 50 GB gp3 root volume, IMDSv2 only | Images, models and databases; blocks the old metadata API |
 | Auto-stop `auto_stop_hours` (default 3) after every boot | A forgotten instance stops itself; shutdown means stop, never terminate |
@@ -32,6 +33,8 @@ Claude is off: no Anthropic key is deployed.
 | Destroyed | $0 |
 
 Left running for a month, the instance would cost about $105. The guards are there for that case.
+On a Free plan account with `m7i-flex.large` (not burstable), running is about $0.11 per hour in
+total.
 
 ## Cost guards
 
@@ -53,7 +56,7 @@ Stop or destroy between demos:
 | | Stop and start | Destroy and apply again |
 |---|---|---|
 | Idle cost | about $4 per month | $0 |
-| Ready in | 2-3 minutes | 20-30 minutes (full first boot) |
+| Ready in | 2-3 minutes | 20-30 minutes on t4g.xlarge, longer on 2 vCPUs (full first boot) |
 | Data and API keys | kept | wiped; new keys in `/opt/nexus/.env` |
 
 Stop between demos in a week with interviews; destroy if it will be idle for more than about a week.
@@ -86,7 +89,8 @@ export PATH=~/bin:$PATH TF_DATA_DIR=/tmp/nexus-tf && cd ~/nexus-ai-hub/deploy/aw
 ```
 
 First boot installs Docker and Ollama, pulls the models and builds the images. That takes about 20 to
-30 minutes. To watch it:
+30 minutes on t4g.xlarge and probably 40-60 minutes on a 2 vCPU type such as m7i-flex.large
+(not measured yet). To watch it:
 
 ```bash
 aws ssm start-session --region us-east-2 --target "$(terraform output -raw instance_id)"
@@ -95,10 +99,34 @@ sudo tail -f /var/log/nexus-bootstrap.log     # finished when it prints "nexus b
 
 ## Use it from your laptop
 
-Install the AWS CLI and the
+**With AWS credentials on the laptop** (an IAM user, or SSO / access keys from your access portal):
+install the AWS CLI and the
 [Session Manager plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html),
-and sign in to the account. Then run `terraform output dashboard` (or `gateway`) and paste the
-command. It forwards the port to your laptop, and the dashboard opens at http://localhost:8501.
+then run `terraform output dashboard` (or `gateway`) and paste the command. It forwards the port to
+your laptop, and the dashboard opens at http://localhost:8501.
+
+**Without AWS credentials on the laptop** (for example a federated account with no access keys): use
+SSH with your own key, open only to your current IP. Set this up before the first `apply`: adding a
+key to an existing instance replaces it.
+
+```bash
+# On the laptop
+ssh-keygen -t ed25519 -f ~/.ssh/nexus-ai -N "" -C nexus-ai   # once
+cat ~/.ssh/nexus-ai.pub                                       # public key: safe to paste
+curl -s https://checkip.amazonaws.com                         # your public IP (not CloudShell's)
+
+# In CloudShell
+terraform plan -out nexus.plan -var budget_email=you@example.com \
+  -var ssh_public_key="ssh-ed25519 AAAA... nexus-ai" -var ssh_cidr=<your IP>/32
+terraform apply nexus.plan
+terraform output -raw public_ip | sh       # the address changes on every stop/start
+
+# On the laptop: keep this running, then open http://localhost:8501 (MLflow on 5001, API on 8080)
+ssh -i ~/.ssh/nexus-ai -N -L 8501:localhost:8501 -L 8080:localhost:8080 -L 5001:localhost:5001 ubuntu@<public IP>
+```
+
+When your IP changes (another network), plan and apply again with the new `ssh_cidr`; only the
+security group rule changes.
 
 To run the demo script on the instance:
 
@@ -121,5 +149,18 @@ If `apply` fails with `explicit deny in a service control policy`:
 
 - On `budgets:*`: leave out `budget_email` and set a budget in the Billing console instead. If only
   the budget action is denied, keep the budget and add `-var budget_stop_action=false`.
-- If Session Manager does not connect: apply with `-var ssh_cidr=$(curl -s https://checkip.amazonaws.com)/32
-  -var key_name=<an EC2 key pair>` and use `ssh -L 8501:localhost:8501 ubuntu@<public IP>`.
+- If Session Manager does not connect: use the SSH setup above.
+
+If `RunInstances` fails with `The specified instance type is not eligible for Free Tier`, the account
+is on the AWS Free plan, which only launches free-tier eligible types. List them with:
+
+```bash
+aws ec2 describe-instance-types --region us-east-2 --filters Name=free-tier-eligible,Values=true \
+  --query 'InstanceTypes[].[InstanceType,VCpuInfo.DefaultVCpus,MemoryInfo.SizeInMiB]' --output table
+```
+
+The largest is usually `m7i-flex.large` (2 vCPU, 8 GB, x86). Add `-var instance_type=m7i-flex.large`
+to `plan`: the x86 Ubuntu image is chosen automatically and the default 4 GB swap file covers the
+memory peaks. Expect answers to take several times longer than on `t4g.xlarge`, because the model
+runs on 2 vCPUs. The other option is upgrading the account to the paid plan, if your organisation
+allows it.

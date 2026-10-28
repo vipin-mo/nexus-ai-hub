@@ -90,7 +90,10 @@ http://localhost:8080. If another project already uses a port, override it, for 
 `NEXUS_POSTGRES_PORT`, `NEXUS_MONGO_PORT`). `make help` lists everything else: tests, evals, the
 pipeline, benchmarks and Kubernetes.
 
-AWS: one EC2 instance with Terraform, no inbound ports, reached through Session Manager. See
+AWS: one EC2 instance with Terraform, no inbound ports (Session Manager, or SSH from one IP), an
+auto-stop and a budget that stops the instance. Deployed and demoed on an `m7i-flex.large`
+(2 vCPU, 8 GB, CPU only): every check passed, answers take about 30 s
+([output](docs/evidence/aws_run.txt), [numbers](BENCHMARKS.md#6-latency)). See
 [deploy/aws](deploy/aws/README.md).
 
 Kubernetes (minikube): `make up` once to build the images, then `minikube image load nexus/python:latest
@@ -165,7 +168,7 @@ local_infra/       docker-compose.yml, k8s/ (kustomize)
 deploy/aws/        Terraform for a single-instance AWS deployment
 scripts/           env generator, demo, benchmarks, WER, model download
 docs/images/       screenshots used in this README
-docs/evidence/     captured output (minikube run)
+docs/evidence/     captured output (minikube and AWS runs)
 ```
 
 MIT licensed. All company names, people and documents are fictional.

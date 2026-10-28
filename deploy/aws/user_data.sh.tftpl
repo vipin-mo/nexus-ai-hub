@@ -1,0 +1,39 @@
+#!/bin/bash
+# First-boot install for the NexusAI demo host (rendered by Terraform; runs once, as root).
+# Progress: /var/log/nexus-bootstrap.log. Done when /opt/nexus/.bootstrap-done exists.
+set -euxo pipefail
+exec > >(tee -a /var/log/nexus-bootstrap.log) 2>&1
+export DEBIAN_FRONTEND=noninteractive
+
+apt-get update
+apt-get install -y ca-certificates curl git make openssl zstd
+curl -fsSL https://get.docker.com | sh # Docker Engine with the compose and buildx plugins
+usermod -aG docker ubuntu
+systemctl enable --now docker
+
+# Ollama on the host. The containers reach it through host.docker.internal (host-gateway), so it
+# listens on all interfaces; the security group has no inbound rule for 11434.
+curl -fsSL https://ollama.com/install.sh | sh
+mkdir -p /etc/systemd/system/ollama.service.d
+cat > /etc/systemd/system/ollama.service.d/override.conf <<'EOF'
+[Service]
+Environment=OLLAMA_HOST=0.0.0.0:11434
+Environment=OLLAMA_KEEP_ALIVE=24h
+EOF
+systemctl daemon-reload
+systemctl enable ollama
+systemctl restart ollama
+until curl -sf http://127.0.0.1:11434/api/version; do sleep 2; done
+ollama pull qwen2.5:3b
+ollama pull nomic-embed-text
+
+install -d -o ubuntu -g ubuntu /opt/nexus
+sudo -u ubuntu -H git clone --depth 1 --branch "${git_ref}" "${repo_url}" /opt/nexus
+cd /opt/nexus
+sudo -u ubuntu -H mkdir -p reports
+sudo -u ubuntu -H scripts/generate_env.sh # fresh random secrets, never copied from a laptop
+sudo -u ubuntu -H scripts/download_whisper_model.sh base.en
+sudo -u ubuntu -H make up # builds the images on the instance; containers restart on reboot
+
+touch /opt/nexus/.bootstrap-done
+echo "nexus bootstrap finished"

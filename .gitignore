@@ -40,3 +40,9 @@ local_infra/k8s/secrets.env
 
 # Personal notes and paid-test evidence (kept locally, not published)
 /notes/
+
+# Terraform (state holds resource IDs; keep it out of git)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars

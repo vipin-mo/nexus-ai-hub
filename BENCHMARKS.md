@@ -163,6 +163,24 @@ This covers API-key auth, two Postgres audit writes, the WebSocket hop, the guar
 The first version of the bounded-concurrency change rejected excess requests immediately: at 32
 clients only 150 of 400 succeeded. A bounded wait queue fixed that.
 
+**On AWS** (2026-10-28, `deploy/aws`, `m7i-flex.large`: 2 vCPU Xeon 8488C, 8 GB, no GPU; the largest
+type an AWS Free plan account can launch). Same scripts, run on the instance
+([output](docs/evidence/aws_run.txt)):
+
+| Measurement | AWS m7i-flex.large | Laptop (above) |
+|---|---|---|
+| Answer p50 / p95 through the gateway (8 questions, warm) | 30.4 s / 53.7 s | 1.79 s / 2.17 s |
+| Median guard / route / retrieve / answer | 6,047 / 2 / 90 / 22,489 ms | 473 / 2 / 14 / 965 ms |
+| First answer after start-up (model load) | 76 s | - |
+| Gateway path without a model call, 32 clients | 74 req/s, p50 403 ms, 400 / 400 ok | 342 req/s, p50 86 ms |
+| Speech-to-text, one 3.7 s clip (CPU) | about 3.3 s | 50 ms (Metal) |
+| Memory after the run | 0.9 GB available, 0.7 GB swap in use | - |
+
+Every request still succeeded, and the demo passed end to end (grounded answers, PII redaction,
+blocked injections including a spoken one, RBAC, audit ledger). The model runs on 2 CPU cores
+instead of a laptop GPU, which makes answers about 17x slower; `t4g.xlarge` (4 vCPU, 16 GB) or a GPU
+instance would be the next step, but the Free plan does not allow them.
+
 ## 7. Speech-to-text (C++ + whisper.cpp base.en)
 
 | Clip | Decode | VAD | Transcription | Real-time factor |

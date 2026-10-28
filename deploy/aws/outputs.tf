@@ -3,7 +3,7 @@ output "instance_id" {
 }
 
 output "bootstrap_log" {
-  description = "Follow the first-boot install (20-30 minutes on t4g.xlarge, longer on 2 vCPUs)."
+  description = "Follow the first-boot install (about 8 minutes on m7i-flex.large)."
   value       = "aws ssm start-session --region ${var.region} --target ${aws_instance.nexus.id} # then: sudo tail -f /var/log/nexus-bootstrap.log"
 }
 

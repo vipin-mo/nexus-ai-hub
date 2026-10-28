@@ -23,6 +23,19 @@ your laptop ──Session Manager port forward──▶ EC2 t4g.xlarge (default 
 Secrets are generated on the instance at first boot (`scripts/generate_env.sh`) and never leave it.
 Claude is off: no Anthropic key is deployed.
 
+## What the first deployment looked like
+
+Deployed on 2026-10-28 to an AWS Free plan account (`m7i-flex.large`). Account ID and public
+addresses are redacted. Measurements: [docs/evidence/aws_run.txt](../../docs/evidence/aws_run.txt).
+
+| Instance (IMDSv2 required, role with SSM only) | Security group: SSH from one /32, nothing else |
+|---|---|
+| ![EC2 instance](../../docs/images/aws/aws_ec2_instance.png) | ![Security group](../../docs/images/aws/aws_security_group.png) |
+| **Budget with the stop action armed** | **CPU during first boot, demo and benchmark** |
+| ![Budget](../../docs/images/aws/aws_budget.png) | ![Monitoring](../../docs/images/aws/aws_ec2_monitoring.png) |
+| **Answer with sources (39.9 s on 2 vCPUs)** | **MLflow traces from the instance** |
+| ![Ask](../../docs/images/aws/aws_ask.png) | ![Traces](../../docs/images/aws/aws_mlflow_traces.png) |
+
 ## Cost (us-east-2, on-demand)
 
 | State | Approximate cost |
@@ -50,13 +63,18 @@ AWS has no hard spending cap, so there are two layers:
    actions. The budget measures usage **before credits**; by default budgets subtract credits, so
    with $100 of credits the actual cost would stay at $0 and nothing would fire. This is a backstop:
    billing data lags by several hours, and the action runs once per budget period.
+   AWS requires budget email recipients added on or after 2026-09-30 to verify their address: open
+   the budget in the Billing console and choose **Send verifications**, or the alerts are not
+   delivered. On an organisation-managed account this can be blocked ("You do not have permission
+   to send verification emails", `notifications-contacts:*`); then budget emails are not available
+   and the on-instance auto-stop is the guard to rely on.
 
 Stop or destroy between demos:
 
 | | Stop and start | Destroy and apply again |
 |---|---|---|
 | Idle cost | about $4 per month | $0 |
-| Ready in | 2-3 minutes | 20-30 minutes on t4g.xlarge, longer on 2 vCPUs (full first boot) |
+| Ready in | 2-3 minutes | about 8 minutes (full first boot, measured on m7i-flex.large) |
 | Data and API keys | kept | wiped; new keys in `/opt/nexus/.env` |
 
 Stop between demos in a week with interviews; destroy if it will be idle for more than about a week.
@@ -88,9 +106,10 @@ session ends, so in a new session run this before any other `terraform` command:
 export PATH=~/bin:$PATH TF_DATA_DIR=/tmp/nexus-tf && cd ~/nexus-ai-hub/deploy/aws && terraform init
 ```
 
-First boot installs Docker and Ollama, pulls the models and builds the images. That takes about 20 to
-30 minutes on t4g.xlarge and probably 40-60 minutes on a 2 vCPU type such as m7i-flex.large
-(not measured yet). To watch it:
+First boot installs Docker and Ollama, pulls the models and builds the images. On m7i-flex.large it took
+about 8 minutes (52 s for packages, Docker and Ollama; 6 min 42 s for models, image builds and
+start-up). CloudShell closes idle sessions after about 20 minutes, so follow the log over SSH if you
+use it. To watch it:
 
 ```bash
 aws ssm start-session --region us-east-2 --target "$(terraform output -raw instance_id)"
@@ -124,6 +143,10 @@ terraform output -raw public_ip | sh       # the address changes on every stop/s
 # On the laptop: keep this running, then open http://localhost:8501 (MLflow on 5001, API on 8080)
 ssh -i ~/.ssh/nexus-ai -N -L 8501:localhost:8501 -L 8080:localhost:8080 -L 5001:localhost:5001 ubuntu@<public IP>
 ```
+
+If a local port is taken, change the left-hand number for the dashboard or the API (for example
+`-L 18501:localhost:8501`). Keep MLflow on local port 5001: it only accepts the host names in its
+`--allowed-hosts` list and answers 403 on other ports.
 
 When your IP changes (another network), plan and apply again with the new `ssh_cidr`; only the
 security group rule changes.

@@ -5,6 +5,25 @@ set -euxo pipefail
 exec > >(tee -a /var/log/nexus-bootstrap.log) 2>&1
 export DEBIAN_FRONTEND=noninteractive
 
+%{ if auto_stop_minutes > 0 ~}
+# Cost guard, installed first so it applies even if the rest of the bootstrap fails: every boot
+# schedules a shutdown ${auto_stop_minutes} minutes later, and Terraform sets shutdown to mean "stop".
+# Extend a session on the instance with: sudo shutdown -c && sudo shutdown -P +120
+cat > /etc/systemd/system/nexus-auto-stop.service <<'EOF'
+[Unit]
+Description=Stop this demo instance ${auto_stop_minutes} minutes after boot (cost guard)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/shutdown -P +${auto_stop_minutes} "NexusAI auto-stop. Cancel: sudo shutdown -c"
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload
+systemctl enable --now nexus-auto-stop.service
+%{ endif ~}
+
 apt-get update
 apt-get install -y ca-certificates curl git make openssl zstd
 curl -fsSL https://get.docker.com | sh # Docker Engine with the compose and buildx plugins

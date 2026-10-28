@@ -45,13 +45,30 @@ variable "key_name" {
   default     = ""
 }
 
+variable "auto_stop_hours" {
+  description = "Stop the instance this many hours after every boot (cost guard). 0 = never."
+  type        = number
+  default     = 3
+  validation {
+    condition     = var.auto_stop_hours >= 0 && var.auto_stop_hours <= 24
+    error_message = "auto_stop_hours must be between 0 and 24."
+  }
+}
+
 variable "budget_email" {
-  description = "Optional email for a monthly cost budget alert. Empty = no budget."
+  description = "Optional email for a monthly cost budget. Empty = no budget and no budget action."
   type        = string
   default     = ""
 }
 
 variable "budget_usd" {
-  type    = number
-  default = 10
+  description = "Monthly budget, measured before credits. Email at 80%; the instance is stopped at 100%."
+  type        = number
+  default     = 10
+}
+
+variable "budget_stop_action" {
+  description = "Let AWS Budgets stop the instance when actual spend reaches budget_usd."
+  type        = bool
+  default     = true
 }

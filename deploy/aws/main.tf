@@ -87,11 +87,20 @@ resource "aws_instance" "nexus" {
   associate_public_ip_address = true
   iam_instance_profile        = aws_iam_instance_profile.nexus.name
   key_name                    = var.key_name == "" ? null : var.key_name
+  # The auto-stop in user_data shuts the OS down; this makes that a stop, never a terminate.
+  instance_initiated_shutdown_behavior = "stop"
 
   user_data = templatefile("${path.module}/user_data.sh.tftpl", {
-    repo_url = var.repo_url
-    git_ref  = var.git_ref
+    repo_url          = var.repo_url
+    git_ref           = var.git_ref
+    auto_stop_minutes = var.auto_stop_hours * 60
   })
+
+  # T-family default, made explicit: CPU above the 40% baseline is billed (about $0.04 per vCPU-hour)
+  # rather than throttled, so first-boot builds and model inference are not slowed down.
+  credit_specification {
+    cpu_credits = "unlimited"
+  }
 
   root_block_device {
     volume_type = "gp3"
@@ -120,6 +129,13 @@ resource "aws_budgets_budget" "monthly" {
   limit_unit   = "USD"
   time_unit    = "MONTHLY"
 
+  # Budgets net credits off by default. With promotional credits that makes actual cost $0 and the
+  # budget never fires, so measure usage before credits.
+  cost_types {
+    include_credit = false
+    include_refund = false
+  }
+
   notification {
     comparison_operator        = "GREATER_THAN"
     threshold                  = 80
@@ -127,4 +143,62 @@ resource "aws_budgets_budget" "monthly" {
     notification_type          = "ACTUAL"
     subscriber_email_addresses = [var.budget_email]
   }
+}
+
+# Backstop for the on-instance auto-stop: when actual spend reaches the budget, AWS Budgets stops the
+# instance through the AWS-StopEC2Instance automation. Billing data lags by several hours, and the
+# action runs once per budget period.
+locals {
+  budget_action = var.budget_email != "" && var.budget_stop_action
+}
+
+data "aws_caller_identity" "current" {}
+
+resource "aws_iam_role" "budget_action" {
+  count = local.budget_action ? 1 : 0
+  name  = "nexus-ai-budget-action"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "budgets.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+      Condition = { StringEquals = { "aws:SourceAccount" = data.aws_caller_identity.current.account_id } }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "budget_action" {
+  count      = local.budget_action ? 1 : 0
+  role       = aws_iam_role.budget_action[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AWSBudgetsActions_RolePolicyForResourceAdministrationWithSSM"
+}
+
+resource "aws_budgets_budget_action" "stop_instance" {
+  count              = local.budget_action ? 1 : 0
+  budget_name        = aws_budgets_budget.monthly[0].name
+  action_type        = "RUN_SSM_DOCUMENTS"
+  approval_model     = "AUTOMATIC"
+  notification_type  = "ACTUAL"
+  execution_role_arn = aws_iam_role.budget_action[0].arn
+
+  action_threshold {
+    action_threshold_type  = "PERCENTAGE"
+    action_threshold_value = 100
+  }
+
+  definition {
+    ssm_action_definition {
+      action_sub_type = "STOP_EC2_INSTANCES"
+      instance_ids    = [aws_instance.nexus.id]
+      region          = var.region
+    }
+  }
+
+  subscriber {
+    address           = var.budget_email
+    subscription_type = "EMAIL"
+  }
+
+  depends_on = [aws_iam_role_policy_attachment.budget_action]
 }

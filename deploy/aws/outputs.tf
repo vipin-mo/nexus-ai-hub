@@ -3,7 +3,7 @@ output "instance_id" {
 }
 
 output "bootstrap_log" {
-  description = "Follow the first-boot install (about 20-30 minutes)."
+  description = "Follow the first-boot install (20-30 minutes on t4g.xlarge, longer on 2 vCPUs)."
   value       = "aws ssm start-session --region ${var.region} --target ${aws_instance.nexus.id} # then: sudo tail -f /var/log/nexus-bootstrap.log"
 }
 
@@ -24,4 +24,14 @@ output "stop" {
 
 output "start" {
   value = "aws ec2 start-instances --region ${var.region} --instance-ids ${aws_instance.nexus.id}"
+}
+
+output "public_ip" {
+  description = "Run in CloudShell after each start; the address changes on every stop/start."
+  value       = "aws ec2 describe-instances --region ${var.region} --instance-ids ${aws_instance.nexus.id} --query 'Reservations[0].Instances[0].PublicIpAddress' --output text"
+}
+
+output "ssh_tunnel" {
+  description = "Run on your laptop (with ssh_cidr and ssh_public_key set), then open http://localhost:8501"
+  value       = "ssh -i ~/.ssh/nexus-ai -N -L 8501:localhost:8501 -L 8080:localhost:8080 -L 5001:localhost:5001 ubuntu@<PUBLIC_IP>"
 }

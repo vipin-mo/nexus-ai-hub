@@ -24,6 +24,19 @@ systemctl daemon-reload
 systemctl enable --now nexus-auto-stop.service
 %{ endif ~}
 
+%{ if swap_gb > 0 ~}
+# Swap so an 8 GB instance survives image builds and model loading.
+if [ ! -f /swapfile ]; then
+  fallocate -l ${swap_gb}G /swapfile
+  chmod 600 /swapfile
+  mkswap /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
+swapon -a
+sysctl -w vm.swappiness=10
+echo 'vm.swappiness=10' > /etc/sysctl.d/99-nexus-swap.conf
+%{ endif ~}
+
 apt-get update
 apt-get install -y ca-certificates curl git make openssl zstd
 curl -fsSL https://get.docker.com | sh # Docker Engine with the compose and buildx plugins

@@ -17,18 +17,31 @@ data "aws_subnets" "default" {
   }
 }
 
+locals {
+  # Graviton families have a "g" after the generation digit (t4g, m7g, c7gn, r8g); m7i-flex, t3 are x86.
+  arch      = can(regex("^[a-z]+[0-9]+[a-z]*g[a-z]*\\.", var.instance_type)) ? "arm64" : "amd64"
+  burstable = startswith(var.instance_type, "t")
+}
+
 data "aws_ami" "ubuntu" {
   count       = var.ami_id == "" ? 1 : 0
   most_recent = true
   owners      = ["099720109477"] # Canonical
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-arm64-server-*"]
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-${local.arch}-server-*"]
   }
 }
 
 locals {
   ami_id = var.ami_id != "" ? var.ami_id : data.aws_ami.ubuntu[0].id
+}
+
+# Your own public key (the private key never leaves your laptop). Only used with ssh_cidr.
+resource "aws_key_pair" "nexus" {
+  count      = var.ssh_public_key != "" ? 1 : 0
+  key_name   = "nexus-ai"
+  public_key = var.ssh_public_key
 }
 
 resource "aws_security_group" "nexus" {
@@ -86,7 +99,8 @@ resource "aws_instance" "nexus" {
   # Outbound internet without a NAT gateway; nothing listens on the public address.
   associate_public_ip_address = true
   iam_instance_profile        = aws_iam_instance_profile.nexus.name
-  key_name                    = var.key_name == "" ? null : var.key_name
+  key_name = (var.ssh_public_key != "" ? aws_key_pair.nexus[0].key_name :
+  var.key_name != "" ? var.key_name : null)
   # The auto-stop in user_data shuts the OS down; this makes that a stop, never a terminate.
   instance_initiated_shutdown_behavior = "stop"
 
@@ -94,12 +108,16 @@ resource "aws_instance" "nexus" {
     repo_url          = var.repo_url
     git_ref           = var.git_ref
     auto_stop_minutes = var.auto_stop_hours * 60
+    swap_gb           = var.swap_gb
   })
 
-  # T-family default, made explicit: CPU above the 40% baseline is billed (about $0.04 per vCPU-hour)
-  # rather than throttled, so first-boot builds and model inference are not slowed down.
-  credit_specification {
-    cpu_credits = "unlimited"
+  # T-family only. CPU above the baseline is billed (about $0.04 per vCPU-hour) rather than
+  # throttled, so first-boot builds and model inference are not slowed down.
+  dynamic "credit_specification" {
+    for_each = local.burstable ? [1] : []
+    content {
+      cpu_credits = "unlimited"
+    }
   }
 
   root_block_device {

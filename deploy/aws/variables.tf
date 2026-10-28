@@ -5,9 +5,25 @@ variable "region" {
 }
 
 variable "instance_type" {
-  description = "ARM (Graviton) instance; 16 GB fits Ollama with qwen2.5:3b plus the seven services."
+  description = <<-EOT
+    16 GB fits Ollama with qwen2.5:3b plus the seven services comfortably. Accounts on the AWS Free plan
+    can only launch free-tier eligible types; the largest is m7i-flex.large (2 vCPU, 8 GB, x86), which
+    works with swap_gb set. The Ubuntu image architecture follows the instance type.
+  EOT
   type        = string
   default     = "t4g.xlarge"
+}
+
+variable "swap_gb" {
+  description = "Swap file size in GB. Needed on 8 GB instances; harmless on larger ones. 0 = none."
+  type        = number
+  default     = 4
+}
+
+variable "ssh_public_key" {
+  description = "Your SSH public key (contents of ~/.ssh/nexus-ai.pub). Used with ssh_cidr when Session Manager is not available from your laptop."
+  type        = string
+  default     = ""
 }
 
 variable "ami_id" {
@@ -34,7 +50,7 @@ variable "git_ref" {
 }
 
 variable "ssh_cidr" {
-  description = "Optional CIDR (e.g. 203.0.113.7/32) allowed to SSH. Empty = no inbound rules; use Session Manager."
+  description = "Optional CIDR allowed to SSH: your laptop's public IP + /32 (from the laptop, not CloudShell). Empty = no inbound rules."
   type        = string
   default     = ""
 }

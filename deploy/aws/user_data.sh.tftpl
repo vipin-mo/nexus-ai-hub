@@ -3,7 +3,8 @@
 # Progress: /var/log/nexus-bootstrap.log. Done when /opt/nexus/.bootstrap-done exists.
 set -euxo pipefail
 exec > >(tee -a /var/log/nexus-bootstrap.log) 2>&1
-export DEBIAN_FRONTEND=noninteractive
+# cloud-init runs this without HOME, and the ollama CLI panics without it.
+export HOME=/root DEBIAN_FRONTEND=noninteractive
 
 %{ if auto_stop_minutes > 0 ~}
 # Cost guard, installed first so it applies even if the rest of the bootstrap fails: every boot
@@ -60,10 +61,11 @@ ollama pull qwen2.5:3b
 ollama pull nomic-embed-text
 
 install -d -o ubuntu -g ubuntu /opt/nexus
-sudo -u ubuntu -H git clone --depth 1 --branch "${git_ref}" "${repo_url}" /opt/nexus
+# Re-runnable: skip steps already done if the script is started again after a failure.
+[ -d /opt/nexus/.git ] || sudo -u ubuntu -H git clone --depth 1 --branch "${git_ref}" "${repo_url}" /opt/nexus
 cd /opt/nexus
 sudo -u ubuntu -H mkdir -p reports
-sudo -u ubuntu -H scripts/generate_env.sh # fresh random secrets, never copied from a laptop
+[ -f .env ] || sudo -u ubuntu -H scripts/generate_env.sh # fresh random secrets, never copied from a laptop
 sudo -u ubuntu -H scripts/download_whisper_model.sh base.en
 sudo -u ubuntu -H make up # builds the images on the instance; containers restart on reboot
 

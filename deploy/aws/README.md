@@ -23,6 +23,19 @@ your laptop ──Session Manager port forward──▶ EC2 t4g.xlarge (default 
 Secrets are generated on the instance at first boot (`scripts/generate_env.sh`) and never leave it.
 Claude is off: no Anthropic key is deployed.
 
+## What the first deployment looked like
+
+Deployed on 2026-10-28 to an AWS Free plan account (`m7i-flex.large`). Account ID and public
+addresses are redacted. Measurements: [docs/evidence/aws_run.txt](../../docs/evidence/aws_run.txt).
+
+| Instance (IMDSv2 required, role with SSM only) | Security group: SSH from one /32, nothing else |
+|---|---|
+| ![EC2 instance](../../docs/images/aws/aws_ec2_instance.png) | ![Security group](../../docs/images/aws/aws_security_group.png) |
+| **Budget with the stop action armed** | **CPU during first boot, demo and benchmark** |
+| ![Budget](../../docs/images/aws/aws_budget.png) | ![Monitoring](../../docs/images/aws/aws_ec2_monitoring.png) |
+| **Answer with sources (39.9 s on 2 vCPUs)** | **MLflow traces from the instance** |
+| ![Ask](../../docs/images/aws/aws_ask.png) | ![Traces](../../docs/images/aws/aws_mlflow_traces.png) |
+
 ## Cost (us-east-2, on-demand)
 
 | State | Approximate cost |
@@ -50,6 +63,11 @@ AWS has no hard spending cap, so there are two layers:
    actions. The budget measures usage **before credits**; by default budgets subtract credits, so
    with $100 of credits the actual cost would stay at $0 and nothing would fire. This is a backstop:
    billing data lags by several hours, and the action runs once per budget period.
+   AWS requires budget email recipients added on or after 2026-09-30 to verify their address: open
+   the budget in the Billing console and choose **Send verifications**, or the alerts are not
+   delivered. On an organisation-managed account this can be blocked ("You do not have permission
+   to send verification emails", `notifications-contacts:*`); then budget emails are not available
+   and the on-instance auto-stop is the guard to rely on.
 
 Stop or destroy between demos:
 

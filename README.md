@@ -35,6 +35,15 @@ were measured and their caveats are in **[BENCHMARKS.md](BENCHMARKS.md)**.
 
 More: [evaluation results](docs/images/dashboard_model_quality.png) · [audit ledger](docs/images/dashboard_audit.png)
 
+**Running on AWS** (one `m7i-flex.large`, 2 vCPU, CPU only; the wait for the answer is sped up 8x):
+
+![Asking a question on the AWS deployment](docs/images/aws/nexusai_aws_ask.gif)
+
+More from the AWS run: [EC2 instance](docs/images/aws/aws_ec2_instance.png) ·
+[security group](docs/images/aws/aws_security_group.png) · [budget with stop action](docs/images/aws/aws_budget.png) ·
+[MLflow traces](docs/images/aws/aws_mlflow_traces.png) · [voice](docs/images/aws/aws_voice.png) ·
+[audit ledger](docs/images/aws/aws_audit_ledger.png)
+
 ## Architecture
 
 ```mermaid

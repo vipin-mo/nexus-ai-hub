@@ -34,14 +34,15 @@ Stop the instance between demos and destroy it when you no longer need it.
 ## Deploy from AWS CloudShell
 
 CloudShell already has credentials for the account. Terraform is installed into `~/bin` because
-CloudShell keeps only the home directory between sessions.
+CloudShell keeps only the home directory between sessions. The home directory is limited to 1 GB and
+the AWS provider plugin alone is several hundred MB, so `TF_DATA_DIR` puts the plugins in `/tmp`.
 
 ```bash
 mkdir -p ~/bin && cd ~/bin
 V=1.17.0; A=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 curl -fsSLO https://releases.hashicorp.com/terraform/$V/terraform_${V}_linux_$A.zip
 unzip -o terraform_${V}_linux_$A.zip terraform && rm terraform_${V}_linux_$A.zip
-export PATH=~/bin:$PATH
+export PATH=~/bin:$PATH TF_DATA_DIR=/tmp/nexus-tf
 
 cd ~ && git clone https://github.com/vipin-mo/nexus-ai-hub.git && cd nexus-ai-hub/deploy/aws
 terraform init
@@ -50,7 +51,12 @@ terraform apply -var budget_email=you@example.com
 ```
 
 The state file stays in `~/nexus-ai-hub/deploy/aws/` in CloudShell. Keep it: `terraform destroy`
-needs it. (CloudShell deletes home directories after 120 days without use.)
+needs it. (CloudShell deletes home directories after 120 days without use.) `/tmp` is cleared when a
+session ends, so in a new session run this before any other `terraform` command:
+
+```bash
+export PATH=~/bin:$PATH TF_DATA_DIR=/tmp/nexus-tf && cd ~/nexus-ai-hub/deploy/aws && terraform init
+```
 
 First boot installs Docker and Ollama, pulls the models and builds the images. That takes about 20 to
 30 minutes. To watch it:

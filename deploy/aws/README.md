@@ -49,6 +49,23 @@ Left running for a month, the instance would cost about $105. The guards are the
 On a Free plan account with `m7i-flex.large` (not burstable), running is about $0.11 per hour in
 total.
 
+**Measured** (Cost Explorer, usage before credits) for the first deployment: the instance ran 2.4
+hours on 2026-10-28 and was stopped afterwards.
+
+| Line item | October 2026 | What it is |
+|---|---|---|
+| EC2-Instances | $0.23 | 2.4 h of `m7i-flex.large` at about $0.096 per hour |
+| EC2-Other | $0.50 | the 50 GB gp3 volume, about $0.13 per day, running or stopped |
+| VPC | $0.01 | the public IPv4 address while running ($0.005 per hour) |
+| Everything else (S3, CloudShell, Budgets, KMS, ...) | $0.00 | |
+| **Total** | **$0.74** | |
+
+![Cost Explorer, October 2026](../../docs/images/aws/aws_cost_explorer.png)
+
+The stopped disk is the largest cost: two idle days cost more than a 2.4-hour demo. If the next
+demo is more than about a week away, `terraform destroy` and apply again the day before; a full
+first boot takes about 8 minutes (new API keys are generated on the instance).
+
 ## Cost guards
 
 AWS has no hard spending cap, so there are two layers:

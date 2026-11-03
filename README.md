@@ -101,8 +101,9 @@ pipeline, benchmarks and Kubernetes.
 
 AWS: one EC2 instance with Terraform, no inbound ports (Session Manager, or SSH from one IP), an
 auto-stop and a budget that stops the instance. Deployed and demoed on an `m7i-flex.large`
-(2 vCPU, 8 GB, CPU only): every check passed, answers take about 30 s
-([output](docs/evidence/aws_run.txt), [numbers](BENCHMARKS.md#6-latency)). See
+(2 vCPU, 8 GB, CPU only): every check passed, answers take about 30 s, and the month cost $0.74
+([output](docs/evidence/aws_run.txt), [numbers](BENCHMARKS.md#6-latency),
+[cost](deploy/aws/README.md#cost-us-east-2-on-demand)). See
 [deploy/aws](deploy/aws/README.md).
 
 Kubernetes (minikube): `make up` once to build the images, then `minikube image load nexus/python:latest

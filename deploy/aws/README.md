@@ -82,9 +82,12 @@ AWS has no hard spending cap, so there are two layers:
    billing data lags by several hours, and the action runs once per budget period.
    AWS requires budget email recipients added on or after 2026-09-30 to verify their address: open
    the budget in the Billing console and choose **Send verifications**, or the alerts are not
-   delivered. On an organisation-managed account this can be blocked ("You do not have permission
-   to send verification emails", `notifications-contacts:*`); then budget emails are not available
-   and the on-instance auto-stop is the guard to rely on.
+   delivered. On this organisation-managed account the console first answered "You do not have
+   permission to send verification emails" (`notifications-contacts:*`), yet the address later
+   showed as verified, so check the status on the budget page before giving up on email alerts.
+   If it stays unverified, the on-instance auto-stop is the guard to rely on.
+
+   ![Budget with the email recipient verified](../../docs/images/aws/aws_budget_email_verified.png)
 
 Stop or destroy between demos:
 

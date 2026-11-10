@@ -24,8 +24,8 @@ jobs:
     name: Python - lint, unit tests, evaluation gate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.11"
           cache: pip
@@ -36,7 +36,7 @@ jobs:
       - run: python -m pytest
       - name: Offline evaluation and quality gate (fails the build on regression)
         run: python -m evals.run_evals --profile offline --gate --report reports/eval_offline.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: eval-report
@@ -46,8 +46,8 @@ jobs:
     name: Java gateway - unit, RBAC and Testcontainers tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
           java-version: "17"
@@ -59,9 +59,9 @@ jobs:
     name: C++ audio processor - Release build with whisper.cpp, ctest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: core_engines/audio-processor-cpp/build/_deps
           key: whisper-v1.9.5-${{ runner.os }}
@@ -75,12 +75,12 @@ jobs:
     name: Data pipeline - Perl, Spark, data-quality gates, PII recall
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.11"
           cache: pip
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
           java-version: "17"
@@ -98,15 +98,15 @@ jobs:
     needs: [python, java, cpp]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with: {context: ., file: Dockerfile.python, target: app, push: false, tags: "nexus/python:ci",
                cache-from: type=gha, cache-to: "type=gha,mode=max"}
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with: {context: core_engines/gateway-service-java, push: false, tags: "nexus/gateway:ci",
                cache-from: type=gha, cache-to: "type=gha,mode=max"}
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with: {context: core_engines/audio-processor-cpp, push: false, tags: "nexus/audio-processor:ci",
                cache-from: type=gha, cache-to: "type=gha,mode=max"}
 
@@ -114,10 +114,13 @@ jobs:
     name: Kubernetes manifests - render and schema-validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Render with kustomize and validate with kubeconform
         run: |
           cp local_infra/k8s/secrets.env.example local_infra/k8s/secrets.env
           kubectl kustomize local_infra/k8s > rendered.yaml
-          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz
+          curl -fsSLO https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          # sha256 from the v0.6.7 release CHECKSUMS file
+          echo "95f14e87aa28c09d5941f11bd024c1d02fdc0303ccaa23f61cef67bc92619d73  kubeconform-linux-amd64.tar.gz" | sha256sum -c -
+          tar xzf kubeconform-linux-amd64.tar.gz kubeconform
           ./kubeconform -strict -summary rendered.yaml

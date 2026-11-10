@@ -6,12 +6,12 @@ variable "region" {
 
 variable "instance_type" {
   description = <<-EOT
-    16 GB fits Ollama with qwen2.5:3b plus the seven services comfortably. Accounts on the AWS Free plan
-    can only launch free-tier eligible types; the largest is m7i-flex.large (2 vCPU, 8 GB, x86), which
-    works with swap_gb set. The Ubuntu image architecture follows the instance type.
+    m7i-flex.large (2 vCPU, 8 GB, x86) is the largest type an AWS Free plan account can launch and is
+    what the published evidence was measured on (with swap_gb set). On a paid account t4g.xlarge
+    (4 vCPU, 16 GB, ARM) gives more headroom. The Ubuntu image architecture follows the instance type.
   EOT
   type        = string
-  default     = "t4g.xlarge"
+  default     = "m7i-flex.large"
 }
 
 variable "swap_gb" {
@@ -27,7 +27,7 @@ variable "ssh_public_key" {
 }
 
 variable "ami_id" {
-  description = "Override the Ubuntu 24.04 arm64 image. Empty = latest Canonical image."
+  description = "Override the Ubuntu 24.04 image. Empty = latest Canonical image for the instance architecture."
   type        = string
   default     = ""
 }

@@ -20,6 +20,9 @@ intervals where n is about 20 or fewer.
 | Pipeline throughput, PII recall, Spark vs DuckDB | `LINES=200000 make pipeline-local`, `data_pipeline/scripts/benchmark_etl.py` |
 | Speech-to-text word error rate | `python scripts/stt_wer.py` |
 
+Raw output files for the evaluation, sweep, latency and paid runs are in
+[docs/evidence/results/](docs/evidence/results/), with an index of which number each one backs.
+
 ## 1. Answer quality (32 golden questions, local models)
 
 Configuration: `qwen2.5:3b` (answers, security scan, routing fallback) and `nomic-embed-text`
@@ -46,15 +49,21 @@ typical requests.
 | Expected document retrieved | 96.4% | 96.4% (same retriever) |
 | Refuses the 4 unanswerable questions | 3 / 4 | **4 / 4** |
 | Groundedness, local judge / Claude judge | 0.975 / - | 1.0 / 1.0 |
-| Answer latency p50 / p95 (eval process) | 3.8 s / 5.0 s | 1.7 s / 2.6 s |
+| Answer latency p50 / p95 (eval process, llama3:8b judge loaded at the same time) | 6.2 s / 20.7 s | 3.2 s / 12.9 s |
 | Cost of the 32 answers | $0 | **$0.039** (about $0.0012 per answer) |
 
+The latency row is from runs where the local llama3:8b judge shared the 16 GB laptop with the answer
+model, which slows everything down; with a Claude judge instead, Claude's p50 / p95 was 1.7 s / 2.6 s.
+Section 6 has the cleaner end-to-end latency through the gateway.
+
 The cost comes from `message.usage` and the pricing table ($1 / $5 per million input / output tokens).
-The ledger, the MLflow trace and the API response all agreed on the first call: 1,062 + 301 tokens,
-$0.002567. Two more checks: knowledge questions stayed on the local model at $0, and with
-`NEXUS_SPEND_CAP_USD=0.001` the second request fell back to the local model (`degraded: true`). All
-paid checks together cost about $0.13. Groundedness is at the top of its scale with both judges, so it
-does not separate the two configurations; fact recall and citations do.
+On the first call the API response and the audit ledger both recorded 1,062 + 301 tokens and $0.002567;
+the MLflow trace's total (1,441 + 322) also includes the local security scan that ran before Claude. Two
+more checks: knowledge questions stayed on the local model at $0, and with `NEXUS_SPEND_CAP_USD=0.001`
+the second request fell back to the local model (`degraded: true`). The answer costs recorded in [the
+result files](docs/evidence/results/) add up to $0.084; the Claude judge's own calls are not recorded
+there. Groundedness is at the top of its scale with both judges, so it does not separate the two
+configurations; fact recall and citations do.
 
 Local answer models compared on an earlier prompt version (fact recall / citations / refusals):
 qwen2.5:1.5b 87.5% / 0% / 75%, **qwen2.5:3b 87.5% / 43% / 100%**, qwen2.5:7b 87.5% / 86% / 100% (about 4x
@@ -115,7 +124,8 @@ With 20 held-out cases per class the 95% intervals are wide: 75% attacks blocked
 blocked is 1-24%, and 15% for the rules alone is 5-36%. One case moves a held-out figure by 5 points.
 
 The rules overfit the phrasings they were written for; the LLM layer does most of the work on new
-phrasings. The classifier adds a median 445 ms. Configurations compared on the held-out set:
+phrasings. The classifier adds a median 446 ms (458 ms on the held-out set). Configurations compared on
+the held-out set:
 
 | Classifier | Prompt | Attacks blocked (of 20) | Benign blocked (of 20) |
 |---|---|---|---|

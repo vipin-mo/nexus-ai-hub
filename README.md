@@ -99,12 +99,11 @@ http://localhost:8080. If another project already uses a port, override it, for 
 `NEXUS_POSTGRES_PORT`, `NEXUS_MONGO_PORT`). `make help` lists everything else: tests, evals, the
 pipeline, benchmarks and Kubernetes.
 
-AWS: one EC2 instance with Terraform, no inbound ports (Session Manager, or SSH from one IP), an
-auto-stop and a budget that stops the instance. Deployed and demoed on an `m7i-flex.large`
-(2 vCPU, 8 GB, CPU only): every check passed, answers take about 30 s (p50), and October cost $0.74 (a 2.4-hour demo plus the disk)
-([output](docs/evidence/aws_run.txt), [numbers](BENCHMARKS.md#6-latency),
-[cost](deploy/aws/README.md#cost-us-east-2-on-demand)). See
-[deploy/aws](deploy/aws/README.md).
+AWS: one EC2 instance with Terraform, no inbound ports except SSH from one IP (none at all with Session
+Manager), an auto-stop and a budget that stops the instance. Deployed and demoed on an `m7i-flex.large`
+(2 vCPU, 8 GB, CPU only): every check passed, answers take about 30 s (p50), and October cost $0.74 (a
+2.4-hour demo plus the disk) ([output](docs/evidence/aws_run.txt), [numbers](BENCHMARKS.md#6-latency),
+[cost](deploy/aws/README.md#cost-us-east-2-on-demand)). See [deploy/aws](deploy/aws/README.md).
 
 Kubernetes (minikube): `make up` once to build the images, then `minikube image load nexus/python:latest
 nexus/gateway:latest nexus/audio-processor:latest`, copy `local_infra/k8s/secrets.env.example` to
@@ -174,7 +173,7 @@ curl -s localhost:8080/api/v1/query -H "Content-Type: application/json" \
 - Audio is file-based (an inbox), not live streaming; the speech samples are TTS voices.
 - The Kubernetes setup targets a single-node cluster (ReadWriteOnce volumes, SQLite-backed MLflow) and
   has only been run on minikube. Spark has only run in local mode.
-- The headline evaluation numbers come from local runs (`make eval-local`, and one paid Claude run); CI
+- The headline evaluation numbers come from local runs (`make eval-local`, and two paid Claude runs); CI
   runs only the deterministic offline profile.
 
 ## How this was built
@@ -189,8 +188,10 @@ direction. My part:
 - **Decisions.** Approving or rejecting the trade-offs the measurements showed (one local model
   instead of two, the router threshold, the security classifier), which project to deploy, and how to
   fit the AWS deployment into the Free plan.
-- **Running and verifying.** I ran the stack, the evaluations, the paid Claude checks and the AWS
-  deployment myself, and recorded the demos.
+- **Running and checking.** Everything ran on my laptop and my AWS account. I ran the stack and the
+  demo, deployed to AWS with Terraform from CloudShell and recorded the demos; many evaluation,
+  benchmark and paid-check runs were executed by the assistant at my request, and I checked the
+  results (the raw files are in [docs/evidence/results/](docs/evidence/results/)).
 - **Review.** Each stage was reviewed with separate AI review tools and by me, and claims the evidence
   did not support were cut or qualified. Most caveats in [BENCHMARKS.md](BENCHMARKS.md) (sample sizes,
   confidence intervals, the held-out caveat, "Earlier figures") came from those reviews. Apart from me,
@@ -208,7 +209,7 @@ local_infra/       docker-compose.yml, k8s/ (kustomize)
 deploy/aws/        Terraform for a single-instance AWS deployment
 scripts/           env generator, demo, benchmarks, WER, model download
 docs/images/       screenshots used in this README
-docs/evidence/     captured output (minikube and AWS runs)
+docs/evidence/     captured output (minikube and AWS runs) and raw result files (results/)
 ```
 
 MIT licensed. All company names, people and documents are fictional.

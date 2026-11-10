@@ -1,0 +1,57 @@
+{
+ "trace_id": "tr-f1a0ef73d84e665b73ebd184d361c102",
+ "token_usage": {
+  "input_tokens": 1441,
+  "output_tokens": 322,
+  "total_tokens": 1763,
+  "cache_read_input_tokens": 0,
+  "cache_creation_input_tokens": 0,
+  "cache_creation_input_tokens_above_1hr": 0
+ },
+ "spans": [
+  [
+   "nexus_request",
+   "CHAIN"
+  ],
+  [
+   "LangGraph",
+   "CHAIN"
+  ],
+  [
+   "guard",
+   "CHAIN"
+  ],
+  [
+   "ChatOllama",
+   "CHAT_MODEL"
+  ],
+  [
+   "_after_guard",
+   "CHAIN"
+  ],
+  [
+   "route",
+   "CHAIN"
+  ],
+  [
+   "retrieve",
+   "CHAIN"
+  ],
+  [
+   "hybrid_retrieval",
+   "RETRIEVER"
+  ],
+  [
+   "_after_retrieve",
+   "CHAIN"
+  ],
+  [
+   "reason",
+   "CHAIN"
+  ],
+  [
+   "Messages.create",
+   "CHAT_MODEL"
+  ]
+ ]
+}

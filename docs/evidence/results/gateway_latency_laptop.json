@@ -1,0 +1,373 @@
+{
+  "created_at": "2026-10-27T21:14:43+00:00",
+  "host": {
+    "machine": "arm64",
+    "system": "Darwin 25.6.0",
+    "cpu": "Apple M5"
+  },
+  "answers": {
+    "questions": 8,
+    "p50_ms": 1963,
+    "p95_ms": 7229,
+    "max_ms": 7229,
+    "median_stage_ms": {
+      "guard": 510.3,
+      "route": 17.7,
+      "retrieve": 53.8,
+      "recommend": 0.0,
+      "reason": 1059.9
+    },
+    "rows": [
+      {
+        "question": "Who has to approve destructive database writes made by an AI agent?",
+        "ms": 7229,
+        "status": "OK",
+        "route": "RAG_KNOWLEDGE",
+        "timings": {
+          "guard": 1958.35,
+          "route": 50.27,
+          "retrieve": 105.48,
+          "reason": 2290.4
+        },
+        "tokens_out": 65
+      },
+      {
+        "question": "How long is assistant conversation memory kept?",
+        "ms": 1820,
+        "status": "OK",
+        "route": "RAG_KNOWLEDGE",
+        "timings": {
+          "guard": 570.92,
+          "route": 12.96,
+          "retrieve": 59.4,
+          "reason": 1031.87
+        },
+        "tokens_out": 20
+      },
+      {
+        "question": "What is each team's monthly budget for external AI APIs?",
+        "ms": 1639,
+        "status": "OK",
+        "route": "RAG_KNOWLEDGE",
+        "timings": {
+          "guard": 503.41,
+          "route": 15.3,
+          "retrieve": 47.96,
+          "reason": 990.64
+        },
+        "tokens_out": 27
+      },
+      {
+        "question": "Which tool should I use to export last month's orders to a spreadsheet?",
+        "ms": 1714,
+        "status": "OK",
+        "route": "RECOMMENDATION",
+        "timings": {
+          "guard": 475.03,
+          "route": 7.65,
+          "retrieve": 32.7,
+          "recommend": 7.35,
+          "reason": 1087.84
+        },
+        "tokens_out": 21
+      },
+      {
+        "question": "Can I push to production on a Friday afternoon?",
+        "ms": 2322,
+        "status": "OK",
+        "route": "RAG_KNOWLEDGE",
+        "timings": {
+          "guard": 534.15,
+          "route": 327.02,
+          "retrieve": 71.07,
+          "reason": 1291.09
+        },
+        "tokens_out": 41
+      },
+      {
+        "question": "What error rate triggers an automatic rollback after a deploy?",
+        "ms": 1963,
+        "status": "OK",
+        "route": "RECOMMENDATION",
+        "timings": {
+          "guard": 505.14,
+          "route": 270.83,
+          "retrieve": 37.94,
+          "recommend": 2.14,
+          "reason": 1015.11
+        },
+        "tokens_out": 34
+      },
+      {
+        "question": "Which role can read the audit ledger?",
+        "ms": 1647,
+        "status": "OK",
+        "route": "RECOMMENDATION",
+        "timings": {
+          "guard": 507.11,
+          "route": 19.22,
+          "retrieve": 52.46,
+          "recommend": 2.32,
+          "reason": 954.79
+        },
+        "tokens_out": 16
+      },
+      {
+        "question": "Explain why p95 latency can rise while p50 stays flat.",
+        "ms": 3675,
+        "status": "OK",
+        "route": "COMPLEX_REASONING",
+        "timings": {
+          "guard": 513.52,
+          "route": 16.17,
+          "retrieve": 55.22,
+          "reason": 2992.37
+        },
+        "tokens_out": 134
+      }
+    ]
+  },
+  "answers_qwen3b_scanner": {
+    "questions": 8,
+    "p50_ms": 1788,
+    "p95_ms": 2173,
+    "max_ms": 2173,
+    "median_stage_ms": {
+      "guard": 472.6,
+      "route": 2.2,
+      "retrieve": 13.9,
+      "recommend": 0.0,
+      "reason": 965.2
+    },
+    "rows": [
+      {
+        "question": "Who has to approve destructive database writes made by an AI agent?",
+        "ms": 2173,
+        "status": "OK",
+        "route": "RAG_KNOWLEDGE",
+        "timings": {
+          "guard": 487.09,
+          "route": 2.53,
+          "retrieve": 17.31,
+          "reason": 1607.79
+        },
+        "tokens_out": 53
+      },
+      {
+        "question": "How long is assistant conversation memory kept?",
+        "ms": 1369,
+        "status": "OK",
+        "route": "RAG_KNOWLEDGE",
+        "timings": {
+          "guard": 461.14,
+          "route": 1.78,
+          "retrieve": 15.35,
+          "reason": 845.7
+        },
+        "tokens_out": 20
+      },
+      {
+        "question": "What is each team's monthly budget for external AI APIs?",
+        "ms": 1294,
+        "status": "OK",
+        "route": "RAG_KNOWLEDGE",
+        "timings": {
+          "guard": 473.92,
+          "route": 1.7,
+          "retrieve": 13.34,
+          "reason": 784.33
+        },
+        "tokens_out": 17
+      },
+      {
+        "question": "Which tool should I use to export last month's orders to a spreadsheet?",
+        "ms": 1470,
+        "status": "OK",
+        "route": "RECOMMENDATION",
+        "timings": {
+          "guard": 471.26,
+          "route": 1.67,
+          "retrieve": 13.08,
+          "recommend": 1.36,
+          "reason": 919.71
+        },
+        "tokens_out": 27
+      },
+      {
+        "question": "Can I push to production on a Friday afternoon?",
+        "ms": 1855,
+        "status": "OK",
+        "route": "RAG_KNOWLEDGE",
+        "timings": {
+          "guard": 479.15,
+          "route": 305.68,
+          "retrieve": 13.73,
+          "reason": 1010.65
+        },
+        "tokens_out": 34
+      },
+      {
+        "question": "What error rate triggers an automatic rollback after a deploy?",
+        "ms": 1788,
+        "status": "OK",
+        "route": "RECOMMENDATION",
+        "timings": {
+          "guard": 459.97,
+          "route": 250.08,
+          "retrieve": 15.26,
+          "recommend": 0.57,
+          "reason": 1021.23
+        },
+        "tokens_out": 34
+      },
+      {
+        "question": "Which role can read the audit ledger?",
+        "ms": 1371,
+        "status": "OK",
+        "route": "RECOMMENDATION",
+        "timings": {
+          "guard": 459.52,
+          "route": 3.28,
+          "retrieve": 13.6,
+          "recommend": 0.6,
+          "reason": 866.95
+        },
+        "tokens_out": 16
+      },
+      {
+        "question": "Explain why p95 latency can rise while p50 stays flat.",
+        "ms": 2033,
+        "status": "OK",
+        "route": "COMPLEX_REASONING",
+        "timings": {
+          "guard": 484.51,
+          "route": 1.92,
+          "retrieve": 13.99,
+          "reason": 1510.02
+        },
+        "tokens_out": 62
+      }
+    ]
+  },
+  "answers_llama3_scanner": {
+    "questions": 8,
+    "p50_ms": 7594,
+    "p95_ms": 9350,
+    "max_ms": 9350,
+    "median_stage_ms": {
+      "guard": 4036.4,
+      "route": 7.0,
+      "retrieve": 293.4,
+      "recommend": 0.0,
+      "reason": 2737.7
+    },
+    "rows": [
+      {
+        "question": "Who has to approve destructive database writes made by an AI agent?",
+        "ms": 9183,
+        "status": "OK",
+        "route": "RAG_KNOWLEDGE",
+        "timings": {
+          "guard": 4844.43,
+          "route": 5.86,
+          "retrieve": 567.77,
+          "reason": 3677.29
+        },
+        "tokens_out": 65
+      },
+      {
+        "question": "How long is assistant conversation memory kept?",
+        "ms": 7482,
+        "status": "OK",
+        "route": "RAG_KNOWLEDGE",
+        "timings": {
+          "guard": 4479.47,
+          "route": 6.7,
+          "retrieve": 290.11,
+          "reason": 2613.2
+        },
+        "tokens_out": 20
+      },
+      {
+        "question": "What is each team's monthly budget for external AI APIs?",
+        "ms": 6283,
+        "status": "OK",
+        "route": "RAG_KNOWLEDGE",
+        "timings": {
+          "guard": 2965.02,
+          "route": 1.5,
+          "retrieve": 292.39,
+          "reason": 2992.89
+        },
+        "tokens_out": 27
+      },
+      {
+        "question": "Which tool should I use to export last month's orders to a spreadsheet?",
+        "ms": 6089,
+        "status": "OK",
+        "route": "RECOMMENDATION",
+        "timings": {
+          "guard": 3005.33,
+          "route": 8.01,
+          "retrieve": 288.04,
+          "recommend": 1.25,
+          "reason": 2729.22
+        },
+        "tokens_out": 21
+      },
+      {
+        "question": "Can I push to production on a Friday afternoon?",
+        "ms": 8164,
+        "status": "OK",
+        "route": "RAG_KNOWLEDGE",
+        "timings": {
+          "guard": 4370.14,
+          "route": 668.49,
+          "retrieve": 294.5,
+          "reason": 2746.26
+        },
+        "tokens_out": 41
+      },
+      {
+        "question": "What error rate triggers an automatic rollback after a deploy?",
+        "ms": 7594,
+        "status": "OK",
+        "route": "RAG_KNOWLEDGE",
+        "timings": {
+          "guard": 3702.65,
+          "route": 584.88,
+          "retrieve": 542.0,
+          "reason": 2701.02
+        },
+        "tokens_out": 20
+      },
+      {
+        "question": "Which role can read the audit ledger?",
+        "ms": 5400,
+        "status": "OK",
+        "route": "RECOMMENDATION",
+        "timings": {
+          "guard": 2697.34,
+          "route": 2.03,
+          "retrieve": 280.51,
+          "recommend": 0.93,
+          "reason": 2367.89
+        },
+        "tokens_out": 16
+      },
+      {
+        "question": "Explain why p95 latency can rise while p50 stays flat.",
+        "ms": 9350,
+        "status": "OK",
+        "route": "COMPLEX_REASONING",
+        "timings": {
+          "guard": 4553.39,
+          "route": 7.34,
+          "retrieve": 302.96,
+          "reason": 4400.01
+        },
+        "tokens_out": 134
+      }
+    ]
+  }
+}

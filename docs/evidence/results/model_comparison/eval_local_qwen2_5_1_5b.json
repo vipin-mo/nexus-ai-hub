@@ -1,0 +1,93 @@
+{
+  "created_at": "2026-10-21T05:52:50+00:00",
+  "params": {
+    "profile": "local",
+    "reasoner_provider": "ollama",
+    "local_model": "qwen2.5:1.5b",
+    "reasoner_ollama_model": "qwen2.5:1.5b",
+    "anthropic_model": "-",
+    "embeddings": "ollama",
+    "prompt_version": "2026-10-21.1",
+    "judge": "ollama",
+    "router_version": "local:2026-10-21T05:17:56+00:00",
+    "suites": "retrieval,routing,security,recommendation,answers"
+  },
+  "mlflow_run_id": "2522aee850f94b1e941b39651367395e",
+  "results": {
+    "retrieval": {
+      "metrics": {
+        "dense_hit_at_1": 0.7857,
+        "dense_hit_at_3": 0.9286,
+        "dense_mrr": 0.8571,
+        "dense_hit_at_3_direct": 1.0,
+        "dense_hit_at_3_paraphrase": 0.7143,
+        "sparse_hit_at_1": 0.8929,
+        "sparse_hit_at_3": 0.9643,
+        "sparse_mrr": 0.9226,
+        "sparse_hit_at_3_direct": 1.0,
+        "sparse_hit_at_3_paraphrase": 0.8571,
+        "hybrid_hit_at_1": 0.9286,
+        "hybrid_hit_at_3": 0.9286,
+        "hybrid_mrr": 0.9286,
+        "hybrid_hit_at_3_direct": 1.0,
+        "hybrid_hit_at_3_paraphrase": 0.7143
+      },
+      "seconds": 1.7
+    },
+    "routing": {
+      "metrics": {
+        "classifier_accuracy": 0.8667,
+        "final_accuracy": 0.8167,
+        "llm_fallback_rate": 0.4667,
+        "latency_p50_ms": 2.08,
+        "latency_p95_ms": 149.17,
+        "confidence_threshold": 0.65,
+        "llm_fallback_accuracy": 0.6071
+      },
+      "seconds": 5.1
+    },
+    "security": {
+      "metrics": {
+        "rules_recall": 0.8788,
+        "rules_false_positive_rate": 0.0,
+        "full_recall": 0.9697,
+        "full_false_positive_rate": 0.037,
+        "llm_scan_latency_p50_ms": 179.31,
+        "policy_version": "2.0.0"
+      },
+      "seconds": 5.8
+    },
+    "recommendation": {
+      "metrics": {
+        "top1_accuracy": 0.8462,
+        "top3_accuracy": 0.9231,
+        "role_violations": 0,
+        "offline_users_evaluated": 74,
+        "offline_cf_hit_at_1": 0.8784,
+        "offline_cf_hit_at_3": 1.0,
+        "offline_cf_mrr": 0.9369,
+        "offline_popularity_hit_at_1": 0.3919,
+        "offline_popularity_hit_at_3": 0.8514,
+        "offline_popularity_mrr": 0.6294
+      },
+      "seconds": 0.0
+    },
+    "answers": {
+      "metrics": {
+        "cites_expected_source": 0.0,
+        "retrieved_expected_source": 0.8571,
+        "fact_recall": 0.8438,
+        "groundedness": 0.975,
+        "refuses_unanswerable": 0.75,
+        "latency_p50_ms": 2452.3,
+        "latency_p95_ms": 4702.56,
+        "total_cost_usd": 0.0,
+        "total_tokens": 23078,
+        "wall_time_s": 127.1,
+        "mlflow_run_id": "2522aee850f94b1e941b39651367395e"
+      },
+      "seconds": 127.1
+    }
+  },
+  "gate_failures": []
+}

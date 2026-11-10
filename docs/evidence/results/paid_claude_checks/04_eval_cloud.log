@@ -1,0 +1,42 @@
+2026/10/21 15:13:25 INFO mlflow.models.evaluation.utils.trace: Auto tracing is temporarily enabled during the model evaluation for computing some metrics and debugging. To disable tracing, call `mlflow.autolog(disable=True)`.
+Evaluating:   0%|          | 0/32 [Elapsed: 00:00, Remaining: ?]Evaluating:   3%|▎         | 1/32 [Elapsed: 00:11, Remaining: 06:01]Evaluating:   6%|▋         | 2/32 [Elapsed: 00:15, Remaining: 03:50]Evaluating:   9%|▉         | 3/32 [Elapsed: 00:18, Remaining: 03:01]Evaluating:  12%|█▎        | 4/32 [Elapsed: 00:21, Remaining: 02:30]Evaluating:  16%|█▌        | 5/32 [Elapsed: 00:30, Remaining: 02:45]Evaluating:  19%|█▉        | 6/32 [Elapsed: 00:39, Remaining: 02:51]Evaluating:  22%|██▏       | 7/32 [Elapsed: 00:42, Remaining: 02:33]Evaluating:  25%|██▌       | 8/32 [Elapsed: 00:45, Remaining: 02:17]Evaluating:  28%|██▊       | 9/32 [Elapsed: 00:54, Remaining: 02:19]Evaluating:  31%|███▏      | 10/32 [Elapsed: 01:02, Remaining: 02:17]Evaluating:  34%|███▍      | 11/32 [Elapsed: 01:06, Remaining: 02:06]Evaluating:  38%|███▊      | 12/32 [Elapsed: 01:09, Remaining: 01:55]Evaluating:  41%|████      | 13/32 [Elapsed: 01:12, Remaining: 01:45]Evaluating:  44%|████▍     | 14/32 [Elapsed: 01:16, Remaining: 01:38]Evaluating:  47%|████▋     | 15/32 [Elapsed: 01:20, Remaining: 01:30]Evaluating:  50%|█████     | 16/32 [Elapsed: 01:23, Remaining: 01:23]Evaluating:  53%|█████▎    | 17/32 [Elapsed: 01:26, Remaining: 01:16]Evaluating:  56%|█████▋    | 18/32 [Elapsed: 01:30, Remaining: 01:10]Evaluating:  59%|█████▉    | 19/32 [Elapsed: 01:32, Remaining: 01:03]Evaluating:  62%|██████▎   | 20/32 [Elapsed: 01:36, Remaining: 00:57]Evaluating:  66%|██████▌   | 21/32 [Elapsed: 01:40, Remaining: 00:52]Evaluating:  69%|██████▉   | 22/32 [Elapsed: 01:43, Remaining: 00:46]Evaluating:  72%|███████▏  | 23/32 [Elapsed: 01:46, Remaining: 00:41]Evaluating:  75%|███████▌  | 24/32 [Elapsed: 01:49, Remaining: 00:36]Evaluating:  78%|███████▊  | 25/32 [Elapsed: 01:52, Remaining: 00:31]Evaluating:  81%|████████▏ | 26/32 [Elapsed: 01:55, Remaining: 00:26]Evaluating:  84%|████████▍ | 27/32 [Elapsed: 01:58, Remaining: 00:21]Evaluating:  88%|████████▊ | 28/32 [Elapsed: 02:02, Remaining: 00:17]Evaluating:  91%|█████████ | 29/32 [Elapsed: 02:06, Remaining: 00:13]Evaluating:  94%|█████████▍| 30/32 [Elapsed: 02:08, Remaining: 00:08]Evaluating:  97%|█████████▋| 31/32 [Elapsed: 02:11, Remaining: 00:04]Evaluating: 100%|██████████| 32/32 [Elapsed: 02:13, Remaining: 00:00]Evaluating: 100%|██████████| 32/32 [Elapsed: 02:13, Remaining: 00:00] [predict_fn: 44%, scorers: 56%]Evaluating: 100%|██████████| 32/32 [Elapsed: 02:13, Remaining: 00:00] [predict_fn: 44%, scorers: 56%]
+
+✨ Evaluation completed.
+
+Metrics and evaluation results are logged to the MLflow run:
+  Run name: eval-cloud-20261021-201325
+  Run ID: 3113405739be41f2bfe320cc2657e769
+View the evaluation results at http://localhost:5001/#/experiments/2/evaluation-runs?selectedRunUuid=3113405739be41f2bfe320cc2657e769
+
+
+== answers (135.3s)
+   fact_recall                            0.9688
+   cites_expected_source                  0.9643
+   retrieved_expected_source              0.9643
+   groundedness                           1.0
+   refuses_unanswerable                   1.0
+   latency_p50_ms                         3220.08
+   latency_p95_ms                         12943.53
+   total_cost_usd                         0.039362
+   total_tokens                           32214
+   wall_time_s                            135.2
+   mlflow_run_id                          3113405739be41f2bfe320cc2657e769
+
+== security (33.0s)
+   rules_recall                           0.8788
+   rules_false_positive_rate              0.0
+   full_recall                            0.9697
+   full_false_positive_rate               0.0
+   llm_scan_latency_p50_ms                456.91
+   policy_version                         2.0.0
+   holdout_rules_recall                   0.15
+   holdout_rules_false_positive_rate      0.0
+   holdout_full_recall                    0.75
+   holdout_full_false_positive_rate       0.05
+   holdout_llm_scan_latency_p50_ms        478.07
+
+report: reports/eval_cloud.json
+mlflow run: 3113405739be41f2bfe320cc2657e769 (http://localhost:5001)
+
+quality gate: pass
+2026/10/21 15:16:15 INFO mlflow.tracing.export.async_export_queue: Flushing the async trace logging queue before program exit. This may take a while...

@@ -1,6 +1,6 @@
-# One Graviton instance in the default VPC running the Docker Compose stack, with Ollama on the host.
-# No load balancer, NAT gateway or inbound ports: access is through Session Manager port forwarding,
-# and every service binds to 127.0.0.1 on the instance anyway.
+# One EC2 instance in the default VPC running the Docker Compose stack, with Ollama on the host.
+# No load balancer or NAT gateway. Inbound access is Session Manager, or SSH from one IP (ssh_cidr);
+# every service binds to 127.0.0.1 and Ollama to the Docker bridge, so nothing else is reachable.
 
 data "aws_vpc" "default" {
   default = true

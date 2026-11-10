@@ -20,7 +20,7 @@ local:              # Ollama: qwen2.5:3b (answers, security scan, routing fallba
   routing.final_accuracy: 0.86           # measured 0.900 (classifier + LLM fallback)
   security.full_recall: 0.93             # measured 0.970 (dev set)
   security.full_false_positive_rate_max: 0.05    # measured 0.000 (dev set)
-  security.holdout_full_recall: 0.70     # measured 0.750 (held-out set, never tuned on)
+  security.holdout_full_recall: 0.70     # measured 0.750 (held-out set; it also chose the classifier config)
   security.holdout_full_false_positive_rate_max: 0.10   # measured 0.050
   recommendation.top1_accuracy: 0.80     # measured 0.846
   recommendation.role_violations_max: 0

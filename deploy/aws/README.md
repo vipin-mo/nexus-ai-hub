@@ -1,18 +1,18 @@
 # Deploying to AWS (one EC2 instance)
 
-The whole stack runs on one Graviton instance with Docker Compose, the same as on a laptop, with
-Ollama on the host. There is no load balancer, NAT gateway or EKS cluster: for a demo they would
-cost more per month than the instance itself.
+The whole stack runs on one EC2 instance with Docker Compose, the same as on a laptop, with Ollama on
+the host. There is no load balancer, NAT gateway or EKS cluster: for a demo they would cost more per
+month than the instance itself.
 
 ```
-your laptop ──Session Manager port forward──▶ EC2 t4g.xlarge (default VPC, no inbound ports)
-                                               ├─ Ollama: qwen2.5:3b, nomic-embed-text
-                                               └─ Docker Compose: 7 services, all on 127.0.0.1
+your laptop ──SSH from one IP (or Session Manager)──▶ EC2 m7i-flex.large (default VPC)
+                                                      ├─ Ollama: qwen2.5:3b, nomic-embed-text (Docker bridge only)
+                                                      └─ Docker Compose: 7 services, all on 127.0.0.1
 ```
 
 | Resource | Why |
 |---|---|
-| `t4g.xlarge` (4 vCPU, 16 GB, ARM) | Ollama plus seven services need about 10 GB; ARM matches the images built on Apple silicon and is cheaper per GB |
+| `m7i-flex.large` by default (2 vCPU, 8 GB, x86) | The largest type an AWS Free plan account can launch; this is what the evidence below was measured on. On a paid account `-var instance_type=t4g.xlarge` (4 vCPU, 16 GB, ARM) gives twice the cores and memory (not measured here); the Ubuntu image follows the architecture |
 | Security group with no inbound rules | Access is through Session Manager, so nothing is exposed; SSH from one IP is opt-in (`ssh_cidr`, `ssh_public_key`) |
 | 4 GB swap file (`swap_gb`) | Headroom for image builds and model loading; needed on 8 GB instances |
 | IAM role with `AmazonSSMManagedInstanceCore` only | Lets Session Manager reach the instance; no other AWS permissions |
@@ -27,27 +27,31 @@ Claude is off: no Anthropic key is deployed.
 
 Deployed on 2026-10-28 to an AWS Free plan account (`m7i-flex.large`). Account ID and public
 addresses are redacted. Measurements: [docs/evidence/aws_run.txt](../../docs/evidence/aws_run.txt).
+In that run Ollama listened on all interfaces (`*:11434` in the evidence; the security group blocked
+it). The first-boot script now binds it to the Docker bridge gateway only. Checked in a Linux Docker
+29 engine (docker-in-docker): a container on a separate network reaches it through `host-gateway`, and
+the engine's external address does not answer. It has not run on AWS yet (the real Ollama service and
+the start-after-Docker ordering on reboot are first exercised on the next deployment).
 
 | Instance (IMDSv2 required, role with SSM only) | Security group: SSH from one /32, nothing else |
 |---|---|
 | ![EC2 instance](../../docs/images/aws/aws_ec2_instance.png) | ![Security group](../../docs/images/aws/aws_security_group.png) |
 | **Budget with the stop action armed** | **CPU during first boot, demo and benchmark** |
 | ![Budget](../../docs/images/aws/aws_budget.png) | ![Monitoring](../../docs/images/aws/aws_ec2_monitoring.png) |
-| **Answer with sources (39.9 s on 2 vCPUs)** | **MLflow traces from the instance** |
+| **Answer with sources (this request 39.9 s; p50 30.4 s, p95 53.7 s over 8 questions)** | **MLflow traces from the instance** |
 | ![Ask](../../docs/images/aws/aws_ask.png) | ![Traces](../../docs/images/aws/aws_mlflow_traces.png) |
 
 ## Cost (us-east-2, on-demand)
 
-| State | Approximate cost |
-|---|---|
-| Running | about $0.145 per hour: instance $0.134, public IPv4 $0.005, volume $0.0055 |
-| Running at full CPU | up to about $0.24 per hour: CPU above the 40% baseline adds about $0.04 per vCPU-hour (`unlimited` credits) |
-| Stopped | about $4 per month for the 50 GB volume; the public IPv4 address is released |
-| Destroyed | $0 |
+| State | `m7i-flex.large` (default) | `t4g.xlarge` (paid accounts) |
+|---|---|---|
+| Running | about $0.106 per hour: instance $0.096, public IPv4 $0.005, volume $0.0055 | about $0.145 per hour (instance $0.134) |
+| Running at full CPU | same (not burstable) | up to about $0.24 per hour: CPU above the 40% baseline adds about $0.04 per vCPU-hour (`unlimited` credits) |
+| Stopped | about $4 per month for the 50 GB volume; the public IPv4 address is released | same |
+| Destroyed | $0 | $0 |
 
-Left running for a month, the instance would cost about $105. The guards are there for that case.
-On a Free plan account with `m7i-flex.large` (not burstable), running is about $0.11 per hour in
-total.
+Left running for a month, `m7i-flex.large` would cost about $77 and `t4g.xlarge` about $105. The
+guards are there for that case.
 
 **Measured** (Cost Explorer, usage before credits) for the first deployment: the instance ran 2.4
 hours on 2026-10-28 and was stopped afterwards.
@@ -72,7 +76,8 @@ AWS has no hard spending cap, so there are two layers:
 
 1. **Auto-stop on the instance.** A systemd unit installed at the very start of first boot schedules a
    shutdown `auto_stop_hours` after every boot, and `instance_initiated_shutdown_behavior = "stop"`
-   makes that a stop. One forgotten session costs at most about 3 x $0.24 = $0.72. Starting the
+   makes that a stop. One forgotten session costs at most about 3 x $0.11 = $0.33 on
+   `m7i-flex.large` (3 x $0.24 = $0.72 on `t4g.xlarge` at full CPU). Starting the
    instance again starts a new 3-hour window. To keep a session going on the instance:
    `sudo shutdown -c && sudo shutdown -P +120`.
 2. **Budget action.** With `budget_email` set, a monthly cost budget emails at 80% and, at 100%, runs
@@ -202,8 +207,7 @@ aws ec2 describe-instance-types --region us-east-2 --filters Name=free-tier-elig
   --query 'InstanceTypes[].[InstanceType,VCpuInfo.DefaultVCpus,MemoryInfo.SizeInMiB]' --output table
 ```
 
-The largest is usually `m7i-flex.large` (2 vCPU, 8 GB, x86). Add `-var instance_type=m7i-flex.large`
-to `plan`: the x86 Ubuntu image is chosen automatically and the default 4 GB swap file covers the
-memory peaks. Expect answers to take several times longer than on `t4g.xlarge`, because the model
-runs on 2 vCPUs. The other option is upgrading the account to the paid plan, if your organisation
-allows it.
+The largest is usually `m7i-flex.large` (2 vCPU, 8 GB, x86), which is the default here; the 4 GB swap
+file covers its memory peaks. On it, answers take about 30 s (p50) because the model runs on 2 CPU
+cores. On a paid account, `-var instance_type=t4g.xlarge` (4 vCPU, 16 GB) gives twice the cores and memory
+(not measured here); upgrading the plan is an option only if your organisation allows it.

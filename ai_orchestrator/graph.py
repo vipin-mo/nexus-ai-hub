@@ -69,7 +69,7 @@ def _elapsed(started: float) -> float:
 
 
 def guard_node(state: AgentState) -> dict:
-    """Block attacks, then redact PII so no model, log or store ever sees the raw identifiers."""
+    """Block attacks, then redact PII so no LLM, log or store ever sees the raw identifiers."""
     started = time.perf_counter()
     guard = get_guard()
     query = state["query"]

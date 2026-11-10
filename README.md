@@ -51,7 +51,7 @@ flowchart LR
   WAV[WAV files] --> CPP
   CPP["C++ audio service<br/>WAV decode · VAD · whisper.cpp"] -->|"transcript<br/>key: INGEST_SERVICE"| GW
   UI[Streamlit dashboard] -->|"question<br/>key: ANALYST / ADMIN"| GW
-  GW["Java gateway · Spring Boot<br/>API keys · RBAC · validation · backpressure"] -->|"RECEIVED / COMPLETED"| PG[("PostgreSQL<br/>append-only audit ledger")]
+  GW["Java gateway · Spring Boot<br/>API keys · RBAC · validation · bounded in-flight (429)"] -->|"RECEIVED / COMPLETED"| PG[("PostgreSQL<br/>append-only audit ledger")]
   GW -->|"WebSocket + internal token"| G
 
   subgraph ORCH ["Python orchestrator · LangGraph"]
@@ -74,9 +74,9 @@ flowchart LR
 | Component | What it does | How it is verified |
 |---|---|---|
 | `core_engines/audio-processor-cpp` | Watches an inbox, decodes WAV (any rate, mono/stereo), detects speech with an energy VAD over zero-copy `std::span` frames, transcribes with whisper.cpp, posts to the gateway with retries | ctest (7 groups), WER script, `--bench` |
-| `core_engines/gateway-service-java` | API-key auth (SHA-256 hashes), roles → permissions, deny by default; audit ledger written before forwarding (fail-closed) and protected by a DB trigger; bounded in-flight requests | 17 tests incl. Testcontainers PostgreSQL |
-| `ai_orchestrator` | LangGraph workflow: guard → route → retrieve → (recommend) → answer. Model tiering keeps lookups on the free local model. PII is redacted before any model, store or trace sees it | 57 offline tests |
-| `evals` | 210 labelled cases across five suites, logged to MLflow (`mlflow.genai.evaluate`), thresholds that fail CI | `make eval`, `make eval-local` |
+| `core_engines/gateway-service-java` | API-key auth (SHA-256 hashes), roles → permissions, deny by default; audit ledger written before forwarding (fail-closed) and protected by a DB trigger; at most 32 requests in flight, then 429 with `Retry-After` | 17 tests incl. Testcontainers PostgreSQL |
+| `ai_orchestrator` | LangGraph workflow: guard → route → retrieve → (recommend) → answer. Model tiering keeps lookups on the free local model. PII is redacted (regex + spaCy NER) before any LLM, store or trace sees it | 57 offline tests |
+| `evals` | 210 labelled cases across five suites, logged to MLflow (`mlflow.genai.evaluate`); the offline profile has thresholds that fail CI | `make eval`, `make eval-local` |
 | `data_pipeline` | Synthetic logs with known PII → Perl → Spark (NER, Parquet lake, marts, incident detection, data-quality gates) → DuckDB. Spark has only run in local mode (`local[*]`) on one machine | DQ gates fail the job; PII recall script |
 | `ui_analytics` | Ask (via the gateway), voice upload, live operations, pipeline analytics, eval results, audit ledger, 👍/👎 feedback to MLflow | Streamlit AppTest, screenshots |
 | `local_infra` | Docker Compose (7 services + batch job) and Kubernetes (kustomize, probes, limits, restricted pod security) | deployed on minikube: all 7 pods ready, a query answered through the gateway, RBAC checked ([output](docs/evidence/minikube_run.txt)) |
@@ -101,7 +101,7 @@ pipeline, benchmarks and Kubernetes.
 
 AWS: one EC2 instance with Terraform, no inbound ports (Session Manager, or SSH from one IP), an
 auto-stop and a budget that stops the instance. Deployed and demoed on an `m7i-flex.large`
-(2 vCPU, 8 GB, CPU only): every check passed, answers take about 30 s, and the month cost $0.74
+(2 vCPU, 8 GB, CPU only): every check passed, answers take about 30 s (p50), and October cost $0.74 (a 2.4-hour demo plus the disk)
 ([output](docs/evidence/aws_run.txt), [numbers](BENCHMARKS.md#6-latency),
 [cost](deploy/aws/README.md#cost-us-east-2-on-demand)). See
 [deploy/aws](deploy/aws/README.md).
@@ -132,11 +132,14 @@ curl -s localhost:8080/api/v1/query -H "Content-Type: application/json" \
   export. The authoritative audit record is the Postgres ledger.
 - **Model registry.** The intent router is trained, scored on a hand-written challenge set and
   registered as `nexus-intent-router`. A new version becomes `@champion` only if it matches or beats the
-  current one on the challenge set; otherwise it is `@challenger`.
-- **Prompt registry.** Prompts are versioned in MLflow under `@production`; the runtime can load them
-  from the registry and fall back to the code version.
+  current one on the challenge set; otherwise it is `@challenger`. The runtime loads the router from the
+  registry only when `NEXUS_ROUTER_MODEL_URI` is set; by default it uses the local file.
+- **Prompt registry.** Prompts are versioned in MLflow under `@production`; with
+  `NEXUS_PROMPTS_FROM_REGISTRY=true` the runtime loads them from the registry and falls back to the code
+  version (off by default).
 - **Cost control.** Real token counts and cost per request, route and model, plus a per-process spend
-  cap with fallback to the local model.
+  cap with fallback to the local model. The cap is checked before each call and the cost added after
+  it, so the last call can overshoot it.
 - **Feedback.** Dashboard ratings are attached to the request's MLflow trace.
 
 ## Design decisions
@@ -151,7 +154,9 @@ curl -s localhost:8080/api/v1/query -H "Content-Type: application/json" \
   7.6 s.
 - **Defence in depth that is measured.** Regex rules generalised poorly (15% on the held-out set), so a
   classifier backs them up. Access control is enforced in code (recommender filter, an answer check),
-  because the model recommended admin-only tools even when told the caller's role.
+  because the model recommended admin-only tools even when told the caller's role. The model can still
+  name such a tool in its text; the answer check then marks it "(requires ADMIN)", and it never appears
+  in the tools the caller is offered.
 - **Spark where it is not needed.** At 200k lines DuckDB computes the same mart 50x faster. Spark is
   there to show a job written to scale out; it has only been run in local mode, never on a cluster.
 
@@ -159,12 +164,37 @@ curl -s localhost:8080/api/v1/query -H "Content-Type: application/json" \
 
 - The documents, logs, usage events and evaluation sets are synthetic and small.
 - Held-out injection recall is 75% on 20 attacks (95% CI 53-89%): new phrasings still get through. The
-  guard is one layer, not a guarantee.
+  held-out set was also used to choose between four classifier configurations, so even 75% is somewhat
+  optimistic. The guard is one layer, not a guarantee.
+- PII redaction happens inside the orchestrator: the gateway, the NER model and whisper.cpp see the raw
+  text or audio (the audit ledger stores only a hash of the query). The same NER found 94.9% of
+  person names in the log pipeline's test, so some names will get through.
 - Groundedness is near the top of its scale with both a local and a Claude judge, so it does not
   separate configurations well on this dataset; fact recall and citations do.
 - Audio is file-based (an inbox), not live streaming; the speech samples are TTS voices.
 - The Kubernetes setup targets a single-node cluster (ReadWriteOnce volumes, SQLite-backed MLflow) and
   has only been run on minikube. Spark has only run in local mode.
+- The headline evaluation numbers come from local runs (`make eval-local`, and one paid Claude run); CI
+  runs only the deterministic offline profile.
+
+## How this was built
+
+I built NexusAI with AI coding assistants (mainly Claude Code), which wrote most of the code under my
+direction. My part:
+
+- **Goals and constraints.** The original idea, what it had to do for real (speech-to-text, a
+  Postgres-backed RBAC gateway, coverage for AI, MLOps, backend and data roles), and the working
+  rules: no paid API calls until a final checklist, one commit per phase, no number without a
+  measurement.
+- **Decisions.** Approving or rejecting the trade-offs the measurements showed (one local model
+  instead of two, the router threshold, the security classifier), which project to deploy, and how to
+  fit the AWS deployment into the Free plan.
+- **Running and verifying.** I ran the stack, the evaluations, the paid Claude checks and the AWS
+  deployment myself, and recorded the demos.
+- **Review.** Each stage was reviewed with separate AI review tools and by me, and claims the evidence
+  did not support were cut or qualified. Most caveats in [BENCHMARKS.md](BENCHMARKS.md) (sample sizes,
+  confidence intervals, the held-out caveat, "Earlier figures") came from those reviews. Apart from me,
+  no person reviewed the code.
 
 ## Repository layout
 

@@ -102,7 +102,9 @@ so 90.0% is optimistic for new queries.
 ## 4. Security guard
 
 Two datasets: a **development set** (62 cases) that informed the rules and the prompt, and a **held-out
-set** (40 cases) written afterwards and never tuned on.
+set** (40 cases) written afterwards. The held-out set was then used to choose between the four
+classifier configurations below (model and prompt style), so the 75% is somewhat optimistic for truly
+new attacks.
 
 | Layer | Dev: attacks blocked | Dev: benign blocked | Held-out: attacks blocked | Held-out: benign blocked |
 |---|---|---|---|---|
@@ -234,3 +236,4 @@ Some commit messages quote figures from earlier setups. They are kept in the his
 | Routing 91.7%, threshold sweep 81.7% -> 91.7% (Phase 3) | llama3:8b as the routing fallback | 90.0% with qwen2.5:3b (section 3) |
 | One resident model cut end-to-end p50 from 7.4 s to 1.2 s (Phase 7) | measured inside the orchestrator process, not through the gateway | 7.59 s -> 1.79 s through the gateway (section 6) |
 | $0.039 for 32 answers (Phase 7) | every route forced to Claude for the comparison | same figure; it is the cost of that test run, not of normal traffic (section 1) |
+| 64 security cases, 16 recommendation cases (Phase 3) | an earlier version of the datasets | 62 development + 40 held-out security cases; 16 recommendation cases, of which 13 are graded for top-1/top-3 (sections 4-5) |

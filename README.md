@@ -101,9 +101,10 @@ pipeline, benchmarks and Kubernetes.
 
 AWS: one EC2 instance with Terraform, no inbound ports except SSH from one IP (none at all with Session
 Manager), an auto-stop and a budget that stops the instance. Deployed and demoed on an `m7i-flex.large`
-(2 vCPU, 8 GB, CPU only): every check passed, answers take about 30 s (p50), and October cost $0.74 (a
-2.4-hour demo plus the disk) ([output](docs/evidence/aws_run.txt), [numbers](BENCHMARKS.md#6-latency),
-[cost](deploy/aws/README.md#cost-us-east-2-on-demand)). See [deploy/aws](deploy/aws/README.md).
+(2 vCPU, 8 GB, CPU only), twice: every check passed, answers take 30-35 s (p50), and October cost $0.74
+(a 2.4-hour demo plus the disk) ([output](docs/evidence/aws_run_2026-11-12.txt),
+[numbers](BENCHMARKS.md#6-latency), [cost](deploy/aws/README.md#cost-us-east-2-on-demand)). See
+[deploy/aws](deploy/aws/README.md).
 
 Kubernetes (minikube): `make up` once to build the images, then `minikube image load nexus/python:latest
 nexus/gateway:latest nexus/audio-processor:latest`, copy `local_infra/k8s/secrets.env.example` to

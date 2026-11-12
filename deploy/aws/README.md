@@ -28,10 +28,10 @@ Claude is off: no Anthropic key is deployed.
 Deployed on 2026-10-28 to an AWS Free plan account (`m7i-flex.large`). Account ID and public
 addresses are redacted. Measurements: [docs/evidence/aws_run.txt](../../docs/evidence/aws_run.txt).
 In that run Ollama listened on all interfaces (`*:11434` in the evidence; the security group blocked
-it). The first-boot script now binds it to the Docker bridge gateway only. Checked in a Linux Docker
-29 engine (docker-in-docker): a container on a separate network reaches it through `host-gateway`, and
-the engine's external address does not answer. It has not run on AWS yet (the real Ollama service and
-the start-after-Docker ordering on reboot are first exercised on the next deployment).
+it). The first-boot script now binds it to the Docker bridge gateway only. A second deployment on
+2026-11-12 ([evidence](../../docs/evidence/aws_run_2026-11-12.txt)) confirmed it: Ollama listened only on
+`172.17.0.1:11434`, did not answer on the VPC address or on localhost, and came back on the same address
+after a reboot; the first boot took 8 min 13 s with no intervention, and the demo passed again.
 
 | Instance (IMDSv2 required, role with SSM only) | Security group: SSH from one /32, nothing else |
 |---|---|
@@ -208,6 +208,6 @@ aws ec2 describe-instance-types --region us-east-2 --filters Name=free-tier-elig
 ```
 
 The largest is usually `m7i-flex.large` (2 vCPU, 8 GB, x86), which is the default here; the 4 GB swap
-file covers its memory peaks. On it, answers take about 30 s (p50) because the model runs on 2 CPU
-cores. On a paid account, `-var instance_type=t4g.xlarge` (4 vCPU, 16 GB) gives twice the cores and memory
-(not measured here); upgrading the plan is an option only if your organisation allows it.
+file covers its memory peaks. On it, answers take 30-35 s (p50, two runs) because the model runs on 2
+CPU cores. On a paid account, `-var instance_type=t4g.xlarge` (4 vCPU, 16 GB) gives twice the cores and
+memory (not measured here); upgrading the plan is an option only if your organisation allows it.

@@ -63,7 +63,12 @@ export OLLAMA_HOST=$BRIDGE_IP:11434
 systemctl daemon-reload
 systemctl enable ollama
 systemctl restart ollama
-until curl -sf "http://$BRIDGE_IP:11434/api/version"; do sleep 2; done
+# Wait up to 2 minutes for Ollama; fail the bootstrap with a clear message instead of hanging.
+for i in $(seq 1 60); do
+  curl -sf "http://$BRIDGE_IP:11434/api/version" && break
+  [ "$i" -eq 60 ] && { echo "Ollama did not answer on $BRIDGE_IP:11434 within 2 minutes" >&2; exit 1; }
+  sleep 2
+done
 ollama pull qwen2.5:3b
 ollama pull nomic-embed-text
 

@@ -19,9 +19,9 @@ whisper.cpp, Spring Boot 4, PostgreSQL, MongoDB, PySpark, DuckDB, Streamlit, Doc
 | Prompt-injection attacks blocked: dev / held-out set | 97% / 75% (95% CI 53-89%) | 33 / 20 attacks |
 | Benign questions wrongly blocked on the held-out set | 5% (1 of 20; 95% CI 1-24%) | 20 benign |
 | Intent routing accuracy (classifier + qwen2.5:3b fallback) | 90.0% | 60 hand-written queries |
-| PII redaction recall over 200k log lines (structured / names) | 100% / 94.9% | 95.8k inserted PII values |
-| Speech-to-text (whisper.cpp on Metal) / word error rate | 50 ms per 3.7 s clip / 7.4% | 5 TTS clips, 54 words |
-| Gateway path without a model call, 32 clients | 342 req/s, p50 86 ms | 400 requests |
+| PII redaction recall over 200k synthetic log lines (structured / names) | 100% / 94.9% | 95.8k inserted PII values |
+| Speech-to-text (whisper.cpp on a laptop GPU) / word error rate | 50 ms per 3.7 s clip / 7.4% | speed: 1 clip, 10 runs; WER: 5 TTS clips, 54 words |
+| Gateway path without a model call, 32 clients (laptop) | 342 req/s, p50 86 ms | 400 requests; raw output not kept |
 | End-to-end answer latency through the gateway (laptop, warm) | p50 1.8 s, p95 2.2 s | 8 questions |
 
 The samples are small, so read the percentages with the counts next to them. All numbers, how they

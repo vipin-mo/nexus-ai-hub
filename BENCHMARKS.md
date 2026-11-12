@@ -1,7 +1,8 @@
 # Benchmarks and evaluation results
 
 All numbers were measured on 2026-10-21 with the scripts in this repository, except the routing
-threshold sweep and the end-to-end latency, which were re-measured on 2026-10-27. No number is estimated.
+threshold sweep and the end-to-end latency, which were re-measured on 2026-10-27, and the AWS
+measurements in section 6, taken on 2026-10-28. No number is estimated.
 Where this file and a commit message disagree, this file is current (see [Earlier figures](#earlier-figures)).
 
 **Machine:** Apple M5 (10 cores), 16 GB RAM, macOS 26.6. Docker Desktop with a 12 GB VM. Ollama ran on
@@ -86,8 +87,8 @@ corpora, but **this corpus does not show a gain from it**.
 | Router | Accuracy | Notes |
 |---|---|---|
 | TF-IDF + logistic regression, held-out templated split | 100% | not meaningful: the templates leak into the split |
-| Same classifier on the hand-written challenge set | 86.7% | p50 0.55 ms |
-| Classifier + qwen2.5:3b fallback below confidence 0.45 (shipped) | **90.0%** (54 / 60; 95% CI 80-95%) | 13% of queries go to the LLM (about 250-450 ms extra) |
+| Same classifier on the hand-written challenge set | 86.7% | router call p50 1.1 ms (`eval_local.json`) |
+| Classifier + qwen2.5:3b fallback below confidence 0.45 (shipped) | **90.0%** (54 / 60; 95% CI 80-95%) | 13% of queries go to the LLM; router call p95 251 ms, which includes those LLM calls |
 | qwen2.5:3b alone on every query | 81.7% | the LLM is worse than the classifier on its own |
 
 Confidence threshold sweep (final accuracy, 60 queries; each model labels every query once and the

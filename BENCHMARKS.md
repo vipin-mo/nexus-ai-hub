@@ -2,7 +2,8 @@
 
 All numbers were measured on 2026-10-21 with the scripts in this repository, except the routing
 threshold sweep and the end-to-end latency, which were re-measured on 2026-10-27, and the AWS
-measurements in section 6, taken on 2026-10-28. No number is estimated.
+measurements in section 6, taken on 2026-10-28 and repeated on a fresh instance on 2026-11-12. No
+number is estimated.
 Where this file and a commit message disagree, this file is current (see [Earlier figures](#earlier-figures)).
 
 **Machine:** Apple M5 (10 cores), 16 GB RAM, macOS 26.6. Docker Desktop with a 12 GB VM. Ollama ran on
@@ -176,23 +177,30 @@ This covers API-key auth, two Postgres audit writes, the WebSocket hop, the guar
 The first version of the bounded-concurrency change rejected excess requests immediately: at 32
 clients only 150 of 400 succeeded. A bounded wait queue fixed that.
 
-**On AWS** (2026-10-28, `deploy/aws`, `m7i-flex.large`: 2 vCPU Xeon 8488C, 8 GB, no GPU; the largest
-type an AWS Free plan account can launch). Same scripts, run on the instance
-([output](docs/evidence/aws_run.txt)):
+**On AWS** (`deploy/aws`, `m7i-flex.large`: 2 vCPU Xeon 8488C, 8 GB, no GPU; the largest type an AWS
+Free plan account can launch). Same scripts, run on two fresh instances ([2026-10-28
+output](docs/evidence/aws_run.txt), [2026-11-12 output](docs/evidence/aws_run_2026-11-12.txt),
+[2026-11-12 raw JSON](docs/evidence/results/aws_benchmark_2026-11-12.json)):
 
-| Measurement | AWS m7i-flex.large | Laptop (above) |
-|---|---|---|
-| Answer p50 / p95 through the gateway (8 questions, warm) | 30.4 s / 53.7 s | 1.79 s / 2.17 s |
-| Median guard / route / retrieve / answer | 6,047 / 2 / 90 / 22,489 ms | 473 / 2 / 14 / 965 ms |
-| First answer after start-up (model load) | 76 s | - |
-| Gateway path without a model call, 32 clients | 74 req/s, p50 403 ms, 400 / 400 ok | 342 req/s, p50 86 ms |
-| Speech-to-text, one 3.7 s clip (CPU) | about 3.3 s | 50 ms (Metal) |
-| Memory after the run | 0.9 GB available, 0.7 GB swap in use | - |
+| Measurement | AWS, 2026-10-28 | AWS, 2026-11-12 | Laptop (above) |
+|---|---|---|---|
+| Answer p50 / p95 through the gateway (8 questions, warm) | 30.4 s / 53.7 s | 34.8 s / 58.5 s | 1.79 s / 2.17 s |
+| Median guard / route / retrieve / answer | 6,047 / 2 / 90 / 22,489 ms | 6,484 / 2 / 92 / 26,290 ms | 473 / 2 / 14 / 965 ms |
+| First answer after start-up (model load) | 76 s | 87 s | - |
+| Gateway path without a model call, 32 clients | 74 req/s, p50 403 ms, 400 / 400 ok | 63 req/s, p50 440 ms, 400 / 400 ok | 342 req/s, p50 86 ms |
+| Speech-to-text, the 3 spoken sample clips (CPU) | 3.1-3.7 s per clip | 3.5-7.2 s per clip | 50 ms for the 3.7 s clip (Metal, warm) |
+| Memory after the run | 0.9 GB available, 0.7 GB swap in use | 0.9 GB available, 0.8 GB swap in use | - |
 
-Every request still succeeded, and the demo passed end to end (grounded answers, PII redaction,
-blocked injections including a spoken one, RBAC, audit ledger). The model runs on 2 CPU cores
-instead of a laptop GPU, which makes answers about 17x slower; `t4g.xlarge` (4 vCPU, 16 GB) or a GPU
-instance would be the next step, but the Free plan does not allow them.
+Every request still succeeded in both runs, and the demo passed end to end (grounded answers, PII
+redaction, blocked injections including a spoken one, RBAC, audit ledger). The same instance type was
+about 15% slower on the second run, with the same CPU model; run-to-run variation on shared cloud
+hardware is normal, so both runs are reported. The model runs on 2 CPU cores instead of a laptop GPU,
+which makes answers about 17-19x slower; `t4g.xlarge` (4 vCPU, 16 GB) or a GPU instance would be the
+next step, but the Free plan does not allow them.
+
+The 2026-11-12 run was also the first with Ollama bound to the Docker bridge: it listened only on
+`172.17.0.1:11434`, did not answer on the instance's VPC address or on localhost, came back on the
+same address after a reboot, and the first boot (8 min 13 s) finished without intervention.
 
 ## 7. Speech-to-text (C++ + whisper.cpp base.en)
 

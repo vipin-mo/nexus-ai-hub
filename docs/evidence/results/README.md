@@ -13,8 +13,11 @@ run settings; IDs are random request, trace and MLflow run IDs from a local stac
 | `router_threshold_sweep.json` | `python -m evals.sweep_router_threshold`, 2026-10-27 | Section 3: the threshold sweep |
 | `gateway_latency_laptop.json` | `scripts/benchmark.py --only answers`, 2026-10-27 | Section 6: p50 1.79 s / p95 2.17 s (qwen2.5:3b scanner) and 7.59 s / 9.35 s (llama3:8b scanner) |
 | `paid_claude_checks/` | the paid checklist, 2026-10-21 | Section 1: tokens and cost of the first Claude call, model tiering, the spend-cap fallback |
+| `aws_benchmark_2026-11-12.json` | `scripts/benchmark.py --only overhead,answers` on the AWS instance, 2026-11-12 | Section 6: the second AWS run (answers p50 34.8 s, overhead 63 req/s) |
 
-Other evidence lives next to this folder: [aws_run.txt](../aws_run.txt) (AWS demo and benchmark) and
+Other evidence lives next to this folder: [aws_run.txt](../aws_run.txt) and
+[aws_run_2026-11-12.txt](../aws_run_2026-11-12.txt) (AWS demo, benchmark and, in the second, the Ollama
+binding and reboot checks) and
 [minikube_run.txt](../minikube_run.txt) (Kubernetes run).
 
 **Not kept as raw files:** the laptop gateway-overhead run (342 req/s), the speech-to-text timings and
